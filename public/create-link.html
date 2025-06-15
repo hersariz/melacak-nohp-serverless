@@ -43,6 +43,15 @@
                         
                         <form id="linkForm">
                             <div class="mb-3">
+                                <label for="target_url" class="form-label">URL Target</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-link"></i></span>
+                                    <input type="url" class="form-control" id="target_url" name="target_url" placeholder="https://example.com" required>
+                                </div>
+                                <small class="text-muted">URL tujuan yang akan dikunjungi target saat mengklik link tracking.</small>
+                            </div>
+                            
+                            <div class="mb-3">
                                 <label for="tracking_id" class="form-label">ID Tracking (Opsional)</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="fas fa-fingerprint"></i></span>
@@ -144,8 +153,15 @@
         document.getElementById('linkForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
+            const targetUrl = document.getElementById('target_url').value.trim();
             const trackingId = document.getElementById('tracking_id').value.trim();
             const customCode = document.getElementById('custom_code').value.trim();
+            
+            if (!targetUrl) {
+                document.getElementById('error-message').textContent = 'URL target harus diisi';
+                document.getElementById('error-alert').style.display = 'block';
+                return;
+            }
             
             // Tampilkan loading
             const submitBtn = this.querySelector('button[type="submit"]');
@@ -157,6 +173,8 @@
             document.getElementById('error-alert').style.display = 'none';
             document.getElementById('result-card').style.display = 'none';
             
+            console.log('Submitting form with URL:', targetUrl, 'tracking_id:', trackingId, 'custom_code:', customCode);
+            
             // Kirim request ke API
             fetch('/api/create-link', {
                 method: 'POST',
@@ -165,14 +183,24 @@
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify({
-                    url: 'https://www.instagram.com/accounts/login/', // URL default untuk redirect
+                    url: targetUrl,
                     tracking_id: trackingId,
                     custom_code: customCode
                 })
             })
             .then(response => {
+                console.log('Response status:', response.status);
                 if (!response.ok) {
-                    throw new Error('Network response was not ok: ' + response.status);
+                    return response.text().then(text => {
+                        console.error('Error response:', text);
+                        try {
+                            // Coba parse sebagai JSON
+                            return JSON.parse(text);
+                        } catch (e) {
+                            // Jika bukan JSON, kembalikan object dengan pesan error
+                            throw new Error('Network response was not ok: ' + response.status + ' ' + text);
+                        }
+                    });
                 }
                 return response.json();
             })
@@ -180,6 +208,8 @@
                 // Reset button
                 submitBtn.innerHTML = originalBtnText;
                 submitBtn.disabled = false;
+                
+                console.log('Response data:', data);
                 
                 if (data.error) {
                     // Tampilkan error
@@ -190,6 +220,15 @@
                     document.getElementById('short-url').value = data.short_url || data.tracking_url;
                     document.getElementById('target-url').value = data.target_url;
                     document.getElementById('result-card').style.display = 'block';
+                    
+                    // Tampilkan status database jika ada error
+                    if (data.db_status === 'error') {
+                        const resultCard = document.getElementById('result-card');
+                        const warningDiv = document.createElement('div');
+                        warningDiv.className = 'alert alert-warning mt-3';
+                        warningDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> <strong>Perhatian:</strong> Link berhasil dibuat tetapi ada masalah saat menyimpan ke database: ${data.db_message}`;
+                        resultCard.appendChild(warningDiv);
+                    }
                 }
             })
             .catch(error => {
@@ -197,12 +236,23 @@
                 submitBtn.innerHTML = originalBtnText;
                 submitBtn.disabled = false;
                 
+                console.error('Fetch error:', error);
+                
                 // Tampilkan error
                 document.getElementById('error-message').textContent = 'Terjadi kesalahan: ' + error.message;
                 document.getElementById('error-alert').style.display = 'block';
-                console.error('Error:', error);
             });
         });
+        
+        // Fungsi untuk generate ID acak
+        function generateRandomId(length = 8) {
+            const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
     </script>
 </body>
 </html> 

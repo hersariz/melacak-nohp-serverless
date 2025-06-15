@@ -63,40 +63,62 @@ module.exports = async (req, res) => {
     const baseUrl = getBaseUrl(req);
     const trackingUrl = `${baseUrl}/t/${finalTrackingId}`;
     
+    console.log('Generated tracking URL:', trackingUrl);
+    console.log('Target URL:', url);
+    
     // Simpan ke database dengan penanganan error yang lebih baik
+    let dbError = null;
     try {
-      // Coba simpan ke Supabase
-      const { data, error } = await supabase
+      // Coba simpan ke Supabase dengan timeout
+      const insertPromise = supabase
         .from('links')
         .insert([
           { 
             tracking_id: finalTrackingId,
             target_url: url,
             clicks: 0,
-            custom_code: custom_code || null
+            custom_code: custom_code || null,
+            created_at: new Date().toISOString()
           }
         ]);
+        
+      // Tambahkan timeout untuk operasi database
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database operation timed out')), 5000)
+      );
+      
+      // Race antara operasi database dan timeout
+      const { data, error } = await Promise.race([insertPromise, timeoutPromise]);
       
       if (error) {
         console.error('Error inserting link to Supabase:', error);
-        // Lanjutkan meskipun ada error, tetap kembalikan respons sukses
+        dbError = error;
       } else {
         console.log('Link saved to database successfully');
       }
-    } catch (dbError) {
-      console.error('Database operation error:', dbError);
-      // Lanjutkan meskipun ada error database
+    } catch (error) {
+      console.error('Database operation error:', error);
+      dbError = error;
     }
     
-    // Selalu kembalikan respons sukses
+    // Kembalikan respons sukses dengan informasi error database jika ada
     return res.status(200).json({
       success: true,
       tracking_id: finalTrackingId,
       short_url: trackingUrl,
-      target_url: url
+      target_url: url,
+      db_status: dbError ? 'error' : 'success',
+      db_message: dbError ? dbError.message : 'Data saved successfully'
     });
   } catch (error) {
+    // Log error untuk debugging
     console.error('Error creating link:', error);
-    return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    
+    // Kembalikan respons error yang informatif
+    return res.status(500).json({ 
+      error: 'Internal Server Error',
+      message: 'Terjadi kesalahan saat membuat link tracking. Silakan coba lagi nanti.',
+      details: error.message
+    });
   }
 }; 
