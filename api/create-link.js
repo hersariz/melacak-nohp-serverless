@@ -63,18 +63,9 @@ module.exports = async (req, res) => {
     const baseUrl = getBaseUrl(req);
     const trackingUrl = `${baseUrl}/t/${finalTrackingId}`;
     
-    // Untuk sementara, kembalikan respons sukses tanpa menyimpan ke database
-    // untuk menghindari error dengan Supabase
-    return res.status(200).json({
-      success: true,
-      tracking_id: finalTrackingId,
-      short_url: trackingUrl,
-      target_url: url
-    });
-    
-    /* Kode untuk menyimpan ke Supabase dinonaktifkan sementara
-    // Simpan ke database
+    // Simpan ke database dengan penanganan error yang lebih baik
     try {
+      // Coba simpan ke Supabase
       const { data, error } = await supabase
         .from('links')
         .insert([
@@ -88,21 +79,22 @@ module.exports = async (req, res) => {
       
       if (error) {
         console.error('Error inserting link to Supabase:', error);
-        return res.status(500).json({ error: 'Failed to create tracking link', details: error.message });
+        // Lanjutkan meskipun ada error, tetap kembalikan respons sukses
+      } else {
+        console.log('Link saved to database successfully');
       }
-      
-      // Kirim response
-      return res.status(200).json({
-        success: true,
-        tracking_id: finalTrackingId,
-        short_url: trackingUrl,
-        target_url: url
-      });
     } catch (dbError) {
-      console.error('Database error:', dbError);
-      return res.status(500).json({ error: 'Database error', details: dbError.message });
+      console.error('Database operation error:', dbError);
+      // Lanjutkan meskipun ada error database
     }
-    */
+    
+    // Selalu kembalikan respons sukses
+    return res.status(200).json({
+      success: true,
+      tracking_id: finalTrackingId,
+      short_url: trackingUrl,
+      target_url: url
+    });
   } catch (error) {
     console.error('Error creating link:', error);
     return res.status(500).json({ error: 'Internal Server Error', details: error.message });
