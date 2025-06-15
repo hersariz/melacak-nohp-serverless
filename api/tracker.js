@@ -70,47 +70,63 @@ module.exports = async (req, res) => {
       ip: ip || 'Unknown',
       device: deviceType,
       browser: result.browser.name || 'Unknown',
-      os: result.os.name || 'Unknown'
+      os: result.os.name || 'Unknown',
+      timestamp: new Date().toISOString()
     };
     
-    // Simpan log ke database
-    const { error: logError } = await supabase
-      .from('logs')
-      .insert([logData]);
+    console.log('Tracking data:', logData);
     
-    if (logError) {
-      console.error('Error saving log to database:', logError);
-      // Lanjutkan meskipun gagal menyimpan log
-    }
-    
-    // Dapatkan link saat ini
-    const { data: linkData, error: getLinkError } = await supabase
-      .from('links')
-      .select('clicks')
-      .eq('tracking_id', id)
-      .single();
-    
-    if (!getLinkError && linkData) {
-      // Update link clicks
-      const newClicks = (linkData.clicks || 0) + 1;
-      const { error: updateError } = await supabase
-        .from('links')
-        .update({ 
-          clicks: newClicks,
-          last_click: new Date().toISOString()
-        })
-        .eq('tracking_id', id);
+    // Coba simpan log ke database, tapi jangan tunggu hasilnya
+    try {
+      // Simpan log ke database
+      supabase
+        .from('logs')
+        .insert([logData])
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error saving log to database:', error);
+          } else {
+            console.log('Log saved successfully');
+          }
+        });
       
-      if (updateError) {
-        console.error('Error updating link clicks:', updateError);
-        // Lanjutkan meskipun gagal update clicks
-      }
+      // Update link clicks
+      supabase
+        .from('links')
+        .select('clicks')
+        .eq('tracking_id', id)
+        .single()
+        .then(({ data: linkData, error: getLinkError }) => {
+          if (!getLinkError && linkData) {
+            // Update link clicks
+            const newClicks = (linkData.clicks || 0) + 1;
+            supabase
+              .from('links')
+              .update({ 
+                clicks: newClicks,
+                last_click: new Date().toISOString()
+              })
+              .eq('tracking_id', id)
+              .then(({ error: updateError }) => {
+                if (updateError) {
+                  console.error('Error updating link clicks:', updateError);
+                } else {
+                  console.log('Link clicks updated successfully');
+                }
+              });
+          }
+        });
+    } catch (dbError) {
+      console.error('Database operation error:', dbError);
+      // Lanjutkan meskipun ada error database
     }
     
-    // Redirect ke URL yang ditentukan
-    res.redirect(302, REDIRECT_URL);
+    // Redirect ke URL yang ditentukan (selalu dilakukan terlepas dari operasi database)
+    console.log('Redirecting to:', REDIRECT_URL);
+    return res.redirect(302, REDIRECT_URL);
   } catch (error) {
     console.error('Error in tracker API:', error);
-    return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    // Tetap redirect meskipun terjadi error
+    return res.redirect(302, REDIRECT_URL);
   }
 }; 

@@ -1,217 +1,171 @@
-# Pelacak Nomor HP - OSINT Tool
+# Link Tracker - Aplikasi Pelacak Nomor HP
 
-Aplikasi untuk melacak informasi nomor telepon menggunakan AbstractAPI. Aplikasi ini dibuat untuk tujuan edukasi dan keamanan.
+Aplikasi sederhana untuk melacak informasi perangkat dan lokasi target melalui link tracking. Aplikasi ini dibangun dengan Node.js dan dapat di-deploy ke platform serverless seperti Vercel.
 
 ## Fitur
 
-- Validasi nomor telepon
-- Identifikasi operator dan negara
-- Menampilkan lokasi perkiraan pada peta
-- Informasi OSINT dan keamanan
-- Mendukung format nomor Indonesia dan internasional
-- Tampilan yang responsif dan user-friendly
-- **NEW!** Fitur link tracking untuk melacak informasi perangkat dan lokasi pengguna
-- Deteksi lokasi berdasarkan kode negara
-- Analisis keamanan dan risiko
-- Informasi OSINT dan pencarian lanjutan
-- Tampilan peta lokasi menggunakan OpenStreetMap
-- Pembuatan link tracking untuk melacak perangkat dan lokasi target
-- Admin panel untuk melihat hasil tracking dan statistik
+- Pembuatan link tracking dengan ID kustom
+- Pelacakan informasi perangkat (tipe device, browser, sistem operasi)
+- Pelacakan alamat IP
+- Dashboard admin untuk melihat hasil tracking
+- Statistik kunjungan
+- Redirect otomatis ke URL yang ditentukan
 
-## Cara Deploy ke Vercel
+## Demo
 
-### Prasyarat
-
-- Akun GitHub
-- Akun Vercel (bisa daftar dengan GitHub)
-- API key dari AbstractAPI (sudah tersedia: `1df4c01438444ee68c02339880acba31`)
-
-### Langkah-langkah Deployment
-
-1. **Clone repository ke GitHub**
-
-   ```
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git remote add origin https://github.com/username/pelacak-nohp.git
-   git push -u origin main
-   ```
-
-2. **Deploy ke Vercel**
-
-   - Buka [Vercel Dashboard](https://vercel.com/dashboard)
-   - Klik "New Project"
-   - Import repository GitHub yang baru dibuat
-   - Konfigurasi project:
-     - Framework Preset: Other
-     - Build Command: `npm run build` (default)
-     - Output Directory: `public` (default)
-   - Klik "Deploy"
-
-3. **Tambahkan Environment Variables**
-
-   Di dashboard Vercel, pilih project:
-   - Buka tab "Settings" > "Environment Variables"
-   - Tambahkan:
-     - Name: `ABSTRACT_API_KEY`
-     - Value: `1df4c01438444ee68c02339880acba31`
-     - Name: `REDIRECT_URL`
-     - Value: `https://www.instagram.com/accounts/login/` (URL untuk redirect setelah tracking)
-     - Name: `NEXT_PUBLIC_SITE_URL`
-     - Value: `https://your-domain.com` (jika menggunakan custom domain)
-   - Klik "Save"
-   - Re-deploy aplikasi
-
-## Penggunaan Lokal
-
-### Menggunakan Vercel CLI
-
-1. Install dependencies:
-   ```
-   npm install
-   ```
-
-2. Jalankan server development:
-   ```
-   npm run dev
-   ```
-
-3. Buka browser dan akses `http://localhost:3000`
-
-### Menggunakan XAMPP
-
-1. Letakkan semua file di folder `htdocs/melacak_nohp`
-2. Jalankan Apache server
-3. Buka browser dan akses `http://localhost/melacak_nohp`
-
-## Teknologi yang Digunakan
-
-- HTML, CSS, JavaScript
-- Bootstrap 5
-- Font Awesome
-- Leaflet.js untuk peta
-- jQuery
-- Vercel Serverless Functions
-- AbstractAPI untuk validasi nomor telepon
-
-## Catatan Keamanan
-
-Aplikasi ini dibuat untuk tujuan edukasi dan keamanan. Gunakan dengan bijak dan bertanggung jawab. Informasi yang ditampilkan hanya perkiraan berdasarkan data operator dan mungkin tidak menunjukkan lokasi fisik sebenarnya dari pengguna nomor tersebut.
+Aplikasi demo dapat diakses di: [https://melacak-nohp-serverless.vercel.app](https://melacak-nohp-serverless.vercel.app)
 
 ## Cara Penggunaan
 
-### Persyaratan
+### Membuat Link Tracking
 
-- XAMPP atau server PHP lainnya
-- API key dari [AbstractAPI](https://www.abstractapi.com/api/phone-validation-api) (gratis)
+1. Buka halaman [Create Link](https://melacak-nohp-serverless.vercel.app/create-link)
+2. Masukkan ID tracking (opsional, akan dibuat otomatis jika kosong)
+3. Klik "Buat Link Tracking"
+4. Salin link pendek yang dihasilkan
+5. Kirimkan link tersebut ke target melalui WhatsApp, SMS, atau media sosial lainnya
 
-### Langkah Instalasi
+### Melihat Hasil Tracking
 
-1. Clone atau download repository ini ke folder htdocs XAMPP Anda
+1. Buka halaman [Admin](https://melacak-nohp-serverless.vercel.app/admin-new)
+2. Login dengan username `admin` dan password `admin123`
+3. Lihat hasil tracking di dashboard
+
+## Struktur Proyek
+
+```
+├── api/
+│   ├── admin/
+│   │   └── get-tracking-data.js    # API untuk mendapatkan data tracking
+│   ├── t/
+│   │   └── [id].js                 # API untuk redirect dari URL pendek ke tracker
+│   ├── create-link.js              # API untuk membuat link tracking
+│   └── tracker.js                  # API untuk tracking
+├── public/
+│   ├── admin.html                  # Halaman admin
+│   ├── admin-new.html              # Halaman admin baru (client-side)
+│   ├── create-link.html            # Halaman pembuatan link
+│   └── index.html                  # Halaman utama
+├── utils/
+│   └── supabase.js                 # Utilitas untuk koneksi ke Supabase
+├── .env                            # File konfigurasi environment
+├── package.json                    # Dependensi npm
+└── vercel.json                     # Konfigurasi Vercel
+```
+
+## Teknologi yang Digunakan
+
+- **Frontend**: HTML, CSS, JavaScript, Bootstrap 5
+- **Backend**: Node.js, Vercel Serverless Functions
+- **Database**: Supabase (PostgreSQL)
+- **Deployment**: Vercel
+
+## Setup Lokal
+
+### Prasyarat
+
+- Node.js dan npm
+- XAMPP/Apache (untuk pengembangan lokal)
+- Akun Supabase (untuk database)
+
+### Langkah-langkah
+
+1. Clone repositori
+   ```bash
+   git clone https://github.com/hersariz/melacak-nohp-serverless.git
+   cd melacak-nohp-serverless
    ```
-   git clone https://github.com/username/melacak_nohp.git
-   ```
-   atau ekstrak file zip ke folder `C:\xampp\htdocs\melacak_nohp`
 
-2. Buka file `track_phone.php` dan ganti `YOUR_ABSTRACTAPI_KEY` dengan API key Anda dari AbstractAPI
-   ```php
-   $api_key = "YOUR_ABSTRACTAPI_KEY"; // Ganti dengan API key Anda
+2. Install dependensi
+   ```bash
+   npm install
    ```
 
-3. Jalankan XAMPP dan aktifkan Apache
+3. Buat file `.env` dengan konfigurasi berikut:
+   ```
+   # API keys
+   ABSTRACT_API_KEY=your_abstract_api_key
 
-4. Buka browser dan akses `http://localhost/melacak_nohp/`
+   # Environment
+   NODE_ENV=development
 
-### Cara Menggunakan
+   # Redirect URL for tracker
+   REDIRECT_URL=https://www.instagram.com/accounts/login/
 
-1. Melacak Nomor HP:
-   - Masukkan nomor telepon yang ingin dilacak (format: 08123456789 atau +628123456789)
-   - Klik tombol "Lacak"
-   - Lihat informasi detail tentang nomor tersebut
+   # Site URL
+   NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
-2. Melacak Perangkat dan Lokasi via Link:
-   - Klik tombol "Buat Link Tracking" di halaman utama
-   - Buat link tracking baru (opsional: tentukan ID tracking dan kode kustom)
-   - Salin link pendek yang dihasilkan
-   - Kirim link tersebut ke target melalui WhatsApp, SMS, atau media sosial
-   - Ketika target mengklik link, informasi perangkat dan lokasi mereka akan dicatat
-   - Lihat hasil tracking di Admin Panel
+   # Supabase Configuration
+   SUPABASE_URL=your_supabase_url
+   SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+   ```
 
-## Fitur Link Tracking
+4. Jalankan aplikasi
+   ```bash
+   npm run dev
+   ```
 
-Fitur baru ini memungkinkan Anda untuk:
+5. Buka `http://localhost:3000` di browser
 
-1. Membuat link khusus yang dapat melacak informasi perangkat dan lokasi pengguna yang mengklik link tersebut
-2. Mendapatkan informasi seperti:
-   - IP address
-   - Jenis perangkat (mobile, tablet, desktop)
-   - Browser dan sistem operasi
-   - Lokasi geografis (jika diizinkan oleh pengguna)
-   - User agent dan informasi teknis lainnya
-3. Melihat semua data yang dikumpulkan di Admin Panel
-4. Membuat link pendek yang lebih mudah dibagikan
+## Setup Database (Supabase)
 
-## Versi Aplikasi
+1. Buat akun di [Supabase](https://supabase.com/)
+2. Buat project baru
+3. Buat tabel berikut:
 
-Ada dua versi aplikasi yang tersedia:
+### Tabel `logs`
+```sql
+CREATE TABLE logs (
+  id SERIAL PRIMARY KEY,
+  tracking_id TEXT NOT NULL,
+  ip TEXT,
+  device TEXT,
+  browser TEXT,
+  os TEXT,
+  timestamp TIMESTAMPTZ DEFAULT NOW()
+);
+```
 
-1. **index.php** - Versi lengkap dengan fitur dan tampilan yang lebih baik
-2. **index_simple.php** - Versi sederhana dengan fungsi dasar (untuk troubleshooting)
+### Tabel `links`
+```sql
+CREATE TABLE links (
+  id SERIAL PRIMARY KEY,
+  tracking_id TEXT NOT NULL UNIQUE,
+  target_url TEXT NOT NULL,
+  custom_code TEXT,
+  clicks INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  last_click TIMESTAMPTZ
+);
+```
 
-## Troubleshooting
+## Deployment ke Vercel
 
-Jika Anda mengalami masalah:
+1. Fork repositori ini
+2. Buat akun di [Vercel](https://vercel.com/)
+3. Import repositori yang telah di-fork
+4. Tambahkan environment variables berikut:
+   - `ABSTRACT_API_KEY`
+   - `REDIRECT_URL`
+   - `NEXT_PUBLIC_SITE_URL`
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+5. Deploy
 
-1. **Error 500**: Periksa apakah API key sudah benar dan PHP cURL sudah diaktifkan di XAMPP
-2. **Peta tidak muncul**: Aplikasi menggunakan OpenStreetMap yang tidak memerlukan API key. Jika peta tidak muncul, aplikasi akan menampilkan informasi lokasi dalam bentuk teks
-3. **API tidak berfungsi**: Aplikasi memiliki fitur fallback yang akan memberikan informasi dasar bahkan jika API tidak berfungsi
-4. **Link tracking tidak berfungsi**: Pastikan pengguna mengizinkan akses lokasi di browser mereka
+## Keamanan
 
-## Penggunaan Link Tracking
+Aplikasi ini menggunakan autentikasi sederhana untuk admin panel. Untuk lingkungan produksi, disarankan untuk mengimplementasikan metode autentikasi yang lebih aman.
 
-Fitur link tracking memungkinkan Anda untuk melacak informasi perangkat dan lokasi target ketika mereka mengklik link yang Anda bagikan:
+## Catatan Penting
 
-1. Buka halaman "Buat Link Tracking" melalui tombol di halaman utama
-2. Isi form untuk membuat link tracking (ID dan kode kustom opsional)
-3. Salin link pendek yang dihasilkan
-4. Bagikan link tersebut ke target melalui WhatsApp, SMS, email, atau media sosial
-5. Ketika target mengklik link, informasi perangkat dan lokasi mereka akan dicatat
-6. Data tracking disimpan di file `tracker_logs.txt` di server Vercel
-
-**Catatan Penting:** Link tracking akan berfungsi dengan baik di Vercel dan dapat diakses dari perangkat manapun. URL yang dihasilkan akan menggunakan domain Vercel (contoh: `your-app.vercel.app`) bukan localhost.
-
-## Admin Panel
-
-Aplikasi ini dilengkapi dengan admin panel untuk melihat hasil tracking dan statistik:
-
-1. Buka halaman "Admin Panel" melalui tombol di halaman utama
-2. Login dengan kredensial default:
-   - Username: `admin`
-   - Password: `admin123`
-3. Di admin panel Anda dapat melihat:
-   - Dashboard dengan statistik tracking
-   - Data tracking lengkap dengan filter pencarian
-   - Daftar link pendek yang telah dibuat
-
-**Catatan Keamanan:** Untuk penggunaan di lingkungan produksi, disarankan untuk mengubah kredensial admin di file `api/admin/get-tracking-data.js`.
+Aplikasi ini dibuat untuk tujuan edukasi. Penggunaan aplikasi ini untuk melacak seseorang tanpa izin dapat melanggar privasi dan hukum yang berlaku.
 
 ## Lisensi
 
-Aplikasi ini bersifat open source dan tersedia untuk digunakan secara gratis.
+[MIT License](LICENSE)
 
-## Migrasi dari PHP ke Serverless
+## Kontak
 
-Aplikasi ini telah berhasil dimigrasi dari PHP/XAMPP ke arsitektur serverless di Vercel:
-
-1. **Backend**: Semua endpoint PHP telah dikonversi menjadi serverless functions Node.js di direktori `api/`
-2. **Frontend**: Halaman HTML/CSS/JS tetap dipertahankan dengan penyesuaian untuk bekerja dengan serverless API
-3. **Database**: Data disimpan dalam file JSON dan teks di Vercel (tidak memerlukan database terpisah)
-
-Keuntungan dari migrasi ini:
-- Dapat di-deploy secara global dengan Vercel
-- Tidak memerlukan server PHP atau database
-- Skalabilitas otomatis
-- Biaya lebih rendah (pay-per-execution)
-
-File PHP lama masih disimpan di repositori untuk referensi, tetapi tidak digunakan dalam deployment. 
+Untuk pertanyaan atau bantuan, silakan hubungi [hersariz@example.com](mailto:hersariz@example.com). 
