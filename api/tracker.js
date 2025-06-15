@@ -21,47 +21,52 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  // Siapkan redirect URL default
+  // Siapkan redirect URL default - ini akan digunakan jika terjadi error
   let redirectUrl = DEFAULT_REDIRECT_URL;
-
+  
+  // Ambil tracking ID dan target URL dari query parameter
+  const { id, target } = req.query;
+  
+  console.log('Processing tracking ID:', id);
+  console.log('Target URL from query:', target);
+  
+  // Gunakan target URL dari parameter jika ada
+  if (target) {
+    redirectUrl = target;
+    console.log('Using target URL from parameter:', redirectUrl);
+  }
+  
   try {
-    // Ambil tracking ID dan target URL dari query parameter
-    const { id, target } = req.query;
-    
-    console.log('Processing tracking ID:', id);
-    console.log('Target URL from query:', target);
-    
+    // Jika tidak ada ID, langsung redirect
     if (!id) {
       console.error('No tracking ID provided');
       return res.redirect(302, redirectUrl);
     }
     
-    // Gunakan target URL dari parameter jika ada
-    if (target) {
-      redirectUrl = target;
-      console.log('Using target URL from parameter:', redirectUrl);
-    } else {
-      // Jika tidak ada target URL di parameter, coba ambil dari database
-      try {
-        const { data, error } = await supabase
-          .from('links')
-          .select('target_url')
-          .eq('tracking_id', id)
-          .single();
-        
-        if (!error && data && data.target_url) {
-          redirectUrl = data.target_url;
-          console.log('Using target URL from database:', redirectUrl);
-        } else {
-          console.log('Target URL not found in database, using default:', redirectUrl);
-        }
-      } catch (dbError) {
-        console.error('Error fetching target URL from database:', dbError);
-      }
+    // Jika tidak ada target URL dari parameter, coba ambil dari database
+    // tapi jangan tunggu hasilnya untuk menghindari timeout
+    if (!target) {
+      // Coba ambil target URL dari database secara asynchronous
+      supabase
+        .from('links')
+        .select('target_url')
+        .eq('tracking_id', id)
+        .single()
+        .then(({ data, error }) => {
+          if (!error && data && data.target_url) {
+            console.log('Found target URL in database:', data.target_url);
+            // Tidak mengubah redirectUrl karena kita sudah memanggil res.redirect
+          } else {
+            console.log('Target URL not found in database, using default');
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching target URL:', error);
+        });
     }
     
     // Parse user agent
-    const userAgent = req.headers['user-agent'];
+    const userAgent = req.headers['user-agent'] || '';
     const parser = new UAParser(userAgent);
     const result = parser.getResult();
     
@@ -81,7 +86,7 @@ module.exports = async (req, res) => {
         default:
           deviceType = 'Tidak diketahui';
       }
-    } else if (!result.device.type && result.os.name) {
+    } else if (result.os && result.os.name) {
       // Jika tidak ada device type tapi ada OS, asumsikan desktop untuk OS desktop umum
       const desktopOS = ['Windows', 'Mac OS', 'Linux', 'Ubuntu', 'Debian'];
       if (desktopOS.includes(result.os.name)) {
@@ -91,23 +96,24 @@ module.exports = async (req, res) => {
     
     // Dapatkan IP address
     const ip = req.headers['x-forwarded-for'] || 
-               req.connection.remoteAddress || 
-               req.socket.remoteAddress ||
-               (req.connection.socket ? req.connection.socket.remoteAddress : null);
+               (req.connection && req.connection.remoteAddress) || 
+               (req.socket && req.socket.remoteAddress) ||
+               (req.connection && req.connection.socket && req.connection.socket.remoteAddress) || 
+               'Unknown';
     
     // Data log
     const logData = {
       tracking_id: id,
-      ip: ip || 'Unknown',
+      ip: ip,
       device: deviceType,
-      browser: result.browser.name || 'Unknown',
-      os: result.os.name || 'Unknown',
+      browser: result.browser && result.browser.name ? result.browser.name : 'Unknown',
+      os: result.os && result.os.name ? result.os.name : 'Unknown',
       timestamp: new Date().toISOString()
     };
     
     console.log('Tracking data:', logData);
     
-    // Coba simpan log ke database dalam background
+    // Simpan log ke database dalam background
     // Tidak menunggu operasi database selesai untuk menghindari timeout
     setTimeout(() => {
       try {
@@ -148,18 +154,20 @@ module.exports = async (req, res) => {
                   }
                 });
             }
+          })
+          .catch(error => {
+            console.error('Error in database operation:', error);
           });
       } catch (dbError) {
         console.error('Database operation error:', dbError);
       }
     }, 10);
-    
-    // Redirect ke URL target
-    console.log('Redirecting to:', redirectUrl);
-    return res.redirect(302, redirectUrl);
   } catch (error) {
     console.error('Error in tracker API:', error);
-    // Tetap redirect meskipun terjadi error
+    // Error handling tidak perlu mengubah alur redirect
+  } finally {
+    // Selalu redirect ke URL target, terlepas dari apapun yang terjadi
+    console.log('Redirecting to:', redirectUrl);
     return res.redirect(302, redirectUrl);
   }
 }; 
