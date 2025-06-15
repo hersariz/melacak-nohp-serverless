@@ -10,9 +10,22 @@
     { "src": "/api/create-link", "dest": "/api/create-link.js" },
     { "src": "/api/admin/get-tracking-data", "dest": "/api/admin/get-tracking-data.js" },
     { "src": "/api/r/(.*)", "dest": "/api/r/[code].js" },
+    { "src": "/api/t/(.*)", "dest": "/api/t/[id].js" },
     { "src": "/", "dest": "/public/index.html" },
     { "src": "/admin", "dest": "/public/admin.html" },
     { "src": "/create-link", "dest": "/public/create-link.html" },
+    { "src": "/t/(.*)", "dest": "/api/t/[id].js" },
     { "src": "/(.+)", "dest": "/public/$1" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Credentials", "value": "true" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
+        { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization" }
+      ]
+    }
   ]
 } 

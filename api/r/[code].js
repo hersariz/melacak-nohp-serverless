@@ -1,96 +1,60 @@
-// API untuk redirect dari link pendek
-const fs = require('fs').promises;
-const path = require('path');
-
-// Konfigurasi
-const LINKS_FILE = path.join(process.cwd(), 'short_links.json');
-
-// Referensi ke inMemoryLinks dari create-link.js (untuk demo)
-// Dalam produksi sebenarnya, gunakan database seperti Vercel KV, MongoDB, dll
-let inMemoryLinks = {};
-
-// Import inMemoryLinks dari create-link jika di lingkungan yang sama
-try {
-  const createLink = require('../create-link');
-  if (createLink.getLinks) {
-    inMemoryLinks = createLink.getLinks();
-  }
-} catch (e) {
-  console.log('Could not import links from create-link.js, using empty object');
-}
-
-// Fungsi untuk mendapatkan link pendek
-async function getShortLink(code) {
-  try {
-    console.log(`Getting short link for code: ${code}`);
-    
-    // Coba baca data dari file jika di lingkungan development
-    if (process.env.NODE_ENV !== 'production') {
-      try {
-        const data = await fs.readFile(LINKS_FILE, 'utf8');
-        inMemoryLinks = JSON.parse(data);
-        console.log('Links loaded from file');
-      } catch (error) {
-        console.log('Could not read links file, using in-memory storage');
-      }
-    }
-    
-    // Periksa apakah kode ada
-    if (!inMemoryLinks[code]) {
-      console.log(`Code ${code} not found`);
-      return null;
-    }
-    
-    console.log(`Found target URL: ${inMemoryLinks[code].target_url}`);
-    
-    // Tambah jumlah klik
-    inMemoryLinks[code].clicks++;
-    inMemoryLinks[code].last_click = new Date().toISOString();
-    
-    // Simpan perubahan jika di lingkungan development
-    if (process.env.NODE_ENV !== 'production') {
-      try {
-        await fs.writeFile(LINKS_FILE, JSON.stringify(inMemoryLinks, null, 2));
-        console.log('Updated links saved to file');
-      } catch (error) {
-        console.error('Error saving links to file:', error);
-      }
-    }
-    
-    return inMemoryLinks[code].target_url;
-  } catch (error) {
-    console.error('Error getting short link:', error);
-    return null;
-  }
-}
+// API untuk redirect dari short link ke target URL
+const { supabase } = require('../../utils/supabase');
 
 module.exports = async (req, res) => {
-  console.log('API r/[code] called');
-  
-  // Ambil kode dari parameter URL
-  const { code } = req.query;
-  console.log(`Redirect requested for code: ${code}`);
-  
-  if (!code) {
-    console.log('Invalid code (empty)');
-    return res.status(400).json({ error: 'Kode tidak valid' });
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+  // Handle OPTIONS request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
-  
+
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
   try {
-    // Dapatkan URL target
-    const targetUrl = await getShortLink(code);
+    // Ambil kode dari path parameter
+    const { code } = req.query;
     
-    if (!targetUrl) {
-      console.log(`Link not found for code: ${code}`);
-      return res.status(404).json({ error: 'Link tidak ditemukan' });
+    if (!code) {
+      return res.status(400).json({ error: 'Short code is required' });
     }
     
-    // Redirect ke URL target
-    console.log(`Redirecting to: ${targetUrl}`);
-    res.setHeader('Location', targetUrl);
-    return res.status(302).end();
+    // Cari link di database
+    const { data, error } = await supabase
+      .from('links')
+      .select('target_url')
+      .eq('tracking_id', code)
+      .single();
+    
+    if (error || !data) {
+      console.error('Error finding link:', error);
+      return res.status(404).json({ error: 'Link not found' });
+    }
+    
+    // Update link clicks
+    const { error: updateError } = await supabase
+      .from('links')
+      .update({ 
+        clicks: supabase.rpc('increment_counter', { x: 1 }),
+        last_click: new Date().toISOString()
+      })
+      .eq('tracking_id', code);
+    
+    if (updateError) {
+      console.error('Error updating link clicks:', updateError);
+      // Lanjutkan meskipun gagal update clicks
+    }
+    
+    // Redirect ke target URL
+    res.redirect(302, data.target_url);
   } catch (error) {
     console.error('Error in redirect API:', error);
-    return res.status(500).json({ error: 'Internal server error: ' + error.message });
+    return res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 }; 
