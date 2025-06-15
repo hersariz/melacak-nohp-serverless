@@ -69,7 +69,31 @@ module.exports = async (req, res) => {
 
   try {
     if (req.method === 'POST') {
-      const { tracking_id = '', custom_code = '' } = req.body;
+      // Parse body request
+      let body;
+      
+      try {
+        // Coba parse body jika sudah dalam format JSON
+        if (typeof req.body === 'object') {
+          body = req.body;
+        } else if (typeof req.body === 'string') {
+          body = JSON.parse(req.body);
+        } else {
+          // Fallback untuk Vercel
+          const buffers = [];
+          for await (const chunk of req) {
+            buffers.push(chunk);
+          }
+          const data = Buffer.concat(buffers).toString();
+          body = data ? JSON.parse(data) : {};
+        }
+      } catch (e) {
+        console.error('Error parsing request body:', e);
+        body = {};
+      }
+      
+      const tracking_id = body.tracking_id || '';
+      const custom_code = body.custom_code || '';
       
       // Buat ID tracking jika tidak ada
       const finalTrackingId = tracking_id || Date.now().toString(36);
