@@ -18,7 +18,8 @@
   "license": "ISC",
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0",
-    "axios": "^1.6.2"
+    "axios": "^1.6.2",
+    "dotenv": "^16.5.0"
   },
   "devDependencies": {
     "vercel": "^32.5.5"

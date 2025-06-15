@@ -83,18 +83,28 @@ module.exports = async (req, res) => {
       // Lanjutkan meskipun gagal menyimpan log
     }
     
-    // Update link clicks
-    const { error: updateError } = await supabase
+    // Dapatkan link saat ini
+    const { data: linkData, error: getLinkError } = await supabase
       .from('links')
-      .update({ 
-        clicks: supabase.rpc('increment_counter', { x: 1 }),
-        last_click: new Date().toISOString()
-      })
-      .eq('tracking_id', id);
+      .select('clicks')
+      .eq('tracking_id', id)
+      .single();
     
-    if (updateError) {
-      console.error('Error updating link clicks:', updateError);
-      // Lanjutkan meskipun gagal update clicks
+    if (!getLinkError && linkData) {
+      // Update link clicks
+      const newClicks = (linkData.clicks || 0) + 1;
+      const { error: updateError } = await supabase
+        .from('links')
+        .update({ 
+          clicks: newClicks,
+          last_click: new Date().toISOString()
+        })
+        .eq('tracking_id', id);
+      
+      if (updateError) {
+        console.error('Error updating link clicks:', updateError);
+        // Lanjutkan meskipun gagal update clicks
+      }
     }
     
     // Redirect ke URL yang ditentukan

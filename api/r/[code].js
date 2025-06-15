@@ -28,7 +28,7 @@ module.exports = async (req, res) => {
     // Cari link di database
     const { data, error } = await supabase
       .from('links')
-      .select('target_url')
+      .select('target_url, clicks')
       .eq('tracking_id', code)
       .single();
     
@@ -38,10 +38,11 @@ module.exports = async (req, res) => {
     }
     
     // Update link clicks
+    const newClicks = (data.clicks || 0) + 1;
     const { error: updateError } = await supabase
       .from('links')
       .update({ 
-        clicks: supabase.rpc('increment_counter', { x: 1 }),
+        clicks: newClicks,
         last_click: new Date().toISOString()
       })
       .eq('tracking_id', code);
