@@ -16,7 +16,12 @@ async function setupDatabase() {
         target_url TEXT NOT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         clicks INTEGER DEFAULT 0,
-        last_click TIMESTAMP WITH TIME ZONE
+        last_click TIMESTAMP WITH TIME ZONE,
+        custom_code TEXT,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_by TEXT,
+        notes TEXT,
+        expiry_date TIMESTAMP WITH TIME ZONE
       `
     });
     
@@ -39,13 +44,31 @@ async function setupDatabase() {
             target_url TEXT NOT NULL,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
             clicks INTEGER DEFAULT 0,
-            last_click TIMESTAMP WITH TIME ZONE
+            last_click TIMESTAMP WITH TIME ZONE,
+            custom_code TEXT,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_by TEXT,
+            notes TEXT,
+            expiry_date TIMESTAMP WITH TIME ZONE
           );
           
           CREATE INDEX idx_links_tracking_id ON links (tracking_id);
+          CREATE INDEX idx_links_custom_code ON links (custom_code);
         `);
       } else {
         console.log('Table links already exists');
+        
+        // Tambahkan kolom baru jika tabel sudah ada
+        console.log('Adding new columns to links table if they do not exist...');
+        console.log(`
+          ALTER TABLE links ADD COLUMN IF NOT EXISTS custom_code TEXT;
+          ALTER TABLE links ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+          ALTER TABLE links ADD COLUMN IF NOT EXISTS created_by TEXT;
+          ALTER TABLE links ADD COLUMN IF NOT EXISTS notes TEXT;
+          ALTER TABLE links ADD COLUMN IF NOT EXISTS expiry_date TIMESTAMP WITH TIME ZONE;
+          
+          CREATE INDEX IF NOT EXISTS idx_links_custom_code ON links (custom_code);
+        `);
       }
     } else {
       console.log('Links table created successfully');
@@ -64,7 +87,14 @@ async function setupDatabase() {
         browser TEXT,
         os TEXT,
         latitude NUMERIC,
-        longitude NUMERIC
+        longitude NUMERIC,
+        user_agent TEXT,
+        screen_resolution TEXT,
+        language TEXT,
+        referrer TEXT,
+        country TEXT,
+        city TEXT,
+        isp TEXT
       `
     });
     
@@ -90,7 +120,14 @@ async function setupDatabase() {
             browser TEXT,
             os TEXT,
             latitude NUMERIC,
-            longitude NUMERIC
+            longitude NUMERIC,
+            user_agent TEXT,
+            screen_resolution TEXT,
+            language TEXT,
+            referrer TEXT,
+            country TEXT,
+            city TEXT,
+            isp TEXT
           );
           
           CREATE INDEX idx_logs_tracking_id ON logs (tracking_id);
@@ -98,9 +135,66 @@ async function setupDatabase() {
         `);
       } else {
         console.log('Table logs already exists');
+        
+        // Tambahkan kolom baru jika tabel sudah ada
+        console.log('Adding new columns to logs table if they do not exist...');
+        console.log(`
+          ALTER TABLE logs ADD COLUMN IF NOT EXISTS user_agent TEXT;
+          ALTER TABLE logs ADD COLUMN IF NOT EXISTS screen_resolution TEXT;
+          ALTER TABLE logs ADD COLUMN IF NOT EXISTS language TEXT;
+          ALTER TABLE logs ADD COLUMN IF NOT EXISTS referrer TEXT;
+          ALTER TABLE logs ADD COLUMN IF NOT EXISTS country TEXT;
+          ALTER TABLE logs ADD COLUMN IF NOT EXISTS city TEXT;
+          ALTER TABLE logs ADD COLUMN IF NOT EXISTS isp TEXT;
+        `);
       }
     } else {
       console.log('Logs table created successfully');
+    }
+    
+    // Buat tabel users untuk autentikasi admin
+    console.log('Creating users table...');
+    const { error: createUsersError } = await supabaseAdmin.rpc('create_table_if_not_exists', { 
+      table_name: 'users',
+      table_definition: `
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        email TEXT,
+        is_admin BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        last_login TIMESTAMP WITH TIME ZONE
+      `
+    });
+    
+    if (createUsersError) {
+      console.log('Creating users table directly...');
+      const { error } = await supabaseAdmin.from('users').select('count').limit(1);
+      
+      if (error && error.code === 'PGRST116') {
+        console.log('Table users does not exist, creating...');
+        console.log(`
+          CREATE TABLE users (
+            id SERIAL PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            email TEXT,
+            is_admin BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            last_login TIMESTAMP WITH TIME ZONE
+          );
+          
+          CREATE INDEX idx_users_username ON users (username);
+          
+          -- Insert default admin user (password: admin123)
+          INSERT INTO users (username, password_hash, is_admin)
+          VALUES ('admin', '$2a$10$XQtB7TL1q9wMvwG4rMvQy.zea7gRG5z.zZCl5UuM1xQKPRVIQzkXy', TRUE);
+        `);
+      } else {
+        console.log('Table users already exists');
+      }
+    } else {
+      console.log('Users table created successfully');
     }
     
     // Buat fungsi increment_counter jika belum ada
