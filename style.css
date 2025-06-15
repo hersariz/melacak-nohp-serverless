@@ -1,0 +1,121 @@
+/* Main Styles for Phone Tracker Application */
+body {
+    background: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);
+    min-height: 100vh;
+    font-family: 'Poppins', 'Roboto', sans-serif;
+}
+
+.container {
+    max-width: 800px;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.result-section {
+    display: none;
+    transition: all 0.3s ease;
+}
+
+.card-header {
+    background-color: #4e73df;
+    color: white;
+    border-radius: 15px 15px 0 0 !important;
+}
+
+.info-item {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #4e73df;
+}
+
+.btn-primary {
+    background-color: #4e73df;
+    border-color: #4e73df;
+}
+
+.btn-primary:hover {
+    background-color: #2e59d9;
+    border-color: #2e59d9;
+}
+
+/* Animation for results */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.result-section.show {
+    animation: fadeIn 0.5s ease forwards;
+}
+
+/* Map styling */
+#map {
+    height: 300px; 
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* Loading spinner */
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Footer styling */
+.footer {
+    margin-top: 2rem;
+    padding: 1rem 0;
+    font-size: 0.9rem;
+    color: #6c757d;
+    text-align: center;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 15px;
+    }
+    
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    #map {
+        height: 250px;
+    }
+}
+
+/* Error styles */
+#errorSection {
+    display: none;
+}
+
+/* Form styles */
+.form-label {
+    font-weight: 500;
+}
+
+.input-group {
+    box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+}
+
+.input-group-text {
+    background-color: #4e73df;
+    color: white;
+    border: none;
+} 

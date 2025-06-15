@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pelacak Nomor HP - OSINT Tool</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header text-center py-3">
+                        <h3 class="mb-0"><i class="fas fa-search me-2"></i> Pelacak Nomor HP</h3>
+                        <p class="text-light mb-0 small">Alat OSINT untuk melacak informasi nomor telepon</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <form id="phoneForm">
+                            <div class="mb-3">
+                                <label for="phoneNumber" class="form-label">Masukkan Nomor HP:</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                    <input type="text" class="form-control" id="phoneNumber" placeholder="Contoh: +628123456789 atau 08123456789" required>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-search me-1"></i> Lacak
+                                    </button>
+                                </div>
+                                <small class="text-muted">Format: +62812XXXXXXX atau 0812XXXXXXX (untuk Indonesia)</small>
+                            </div>
+                        </form>
+                        
+                        <div class="loader">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Sedang melacak nomor...</p>
+                        </div>
+                        
+                        <div class="alert alert-info small" role="alert">
+                            <i class="fas fa-info-circle me-2"></i> Alat ini hanya digunakan untuk tujuan edukasi dan keamanan. Gunakan dengan bijak dan bertanggung jawab.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Hasil Pelacakan -->
+                <div class="result-card">
+                    <div class="card">
+                        <div class="card-header py-3">
+                            <h4 class="mb-0"><i class="fas fa-info-circle me-2"></i> Hasil Pelacakan</h4>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="card info-card h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title"><i class="fas fa-sim-card text-primary me-2"></i> Informasi Dasar</h5>
+                                            <hr>
+                                            <ul class="list-group list-group-flush" id="basicInfo">
+                                                <!-- Diisi oleh JavaScript -->
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="card info-card h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title"><i class="fas fa-globe text-primary me-2"></i> Informasi Lokasi</h5>
+                                            <hr>
+                                            <ul class="list-group list-group-flush" id="locationInfo">
+                                                <!-- Diisi oleh JavaScript -->
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mt-3">
+                                <div class="col-md-6 mb-3">
+                                    <div class="card info-card h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title"><i class="fas fa-shield-alt text-primary me-2"></i> Analisis Keamanan</h5>
+                                            <hr>
+                                            <ul class="list-group list-group-flush" id="securityInfo">
+                                                <!-- Diisi oleh JavaScript -->
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="card info-card h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title"><i class="fas fa-search text-primary me-2"></i> Informasi OSINT</h5>
+                                            <hr>
+                                            <ul class="list-group list-group-flush" id="osintInfo">
+                                                <!-- Diisi oleh JavaScript -->
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <h5><i class="fas fa-map-marked-alt text-primary me-2"></i> Perkiraan Lokasi</h5>
+                                <div id="map">
+                                    <!-- Peta akan ditampilkan di sini -->
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-warning mt-4" role="alert">
+                                <i class="fas fa-exclamation-triangle me-2"></i> <strong>Perhatian:</strong> Informasi lokasi hanya perkiraan berdasarkan data operator dan mungkin tidak menunjukkan lokasi fisik sebenarnya dari pengguna nomor tersebut.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="footer text-center">
+                    <p>© 2023 Pelacak Nomor HP | Dibuat untuk tujuan edukasi</p>
+                    <div class="mt-2">
+                        <a href="/create-link.html" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-link me-1"></i> Buat Link Tracking
+                        </a>
+                        <a href="/admin.html" class="btn btn-sm btn-outline-secondary ms-2">
+                            <i class="fas fa-cog me-1"></i> Admin Panel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+</html> 

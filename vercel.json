@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "api/**/*.js", "use": "@vercel/node" },
+    { "src": "public/**/*", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/track-phone", "dest": "/api/track-phone.js" },
+    { "src": "/api/tracker", "dest": "/api/tracker.js" },
+    { "src": "/api/create-link", "dest": "/api/create-link.js" },
+    { "src": "/api/admin/get-tracking-data", "dest": "/api/admin/get-tracking-data.js" },
+    { "src": "/api/r/(.*)", "dest": "/api/r/[code].js" },
+    { "src": "/", "dest": "/public/index.html" },
+    { "src": "/admin", "dest": "/public/admin.html" },
+    { "src": "/create-link", "dest": "/public/create-link.html" },
+    { "src": "/(.+)", "dest": "/public/$1" }
+  ]
+} 

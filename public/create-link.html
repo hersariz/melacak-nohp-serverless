@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buat Link Tracking</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 20px;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #343a40;
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+        }
+        .result-card {
+            background-color: #f0f8ff;
+            border-left: 4px solid #0d6efd;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header py-3 text-center">
+                        <h3 class="mb-0"><i class="fas fa-link me-2"></i> Buat Link Tracking</h3>
+                    </div>
+                    <div class="card-body p-4">
+                        <div id="error-alert" class="alert alert-danger" style="display: none;">
+                            <i class="fas fa-exclamation-circle me-2"></i> <span id="error-message"></span>
+                        </div>
+                        
+                        <form id="linkForm">
+                            <div class="mb-3">
+                                <label for="tracking_id" class="form-label">ID Tracking (Opsional)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-fingerprint"></i></span>
+                                    <input type="text" class="form-control" id="tracking_id" name="tracking_id" placeholder="Biarkan kosong untuk ID otomatis">
+                                </div>
+                                <small class="text-muted">ID ini akan digunakan untuk mengidentifikasi target. Biarkan kosong untuk ID otomatis.</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="custom_code" class="form-label">Kode Kustom (Opsional)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-code"></i></span>
+                                    <input type="text" class="form-control" id="custom_code" name="custom_code" placeholder="Biarkan kosong untuk kode otomatis">
+                                </div>
+                                <small class="text-muted">Kode ini akan digunakan untuk link pendek. Biarkan kosong untuk kode otomatis.</small>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus-circle me-2"></i> Buat Link Tracking
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <div id="result-card" class="mt-4 p-3 result-card">
+                            <h5><i class="fas fa-check-circle text-success me-2"></i> Link Berhasil Dibuat!</h5>
+                            
+                            <div class="mb-3 mt-3">
+                                <label class="form-label">Link Pendek:</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="short-url" readonly>
+                                    <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('short-url')">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Link ini lebih pendek dan mudah dibagikan.</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Link Asli:</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="target-url" readonly>
+                                    <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('target-url')">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-info mt-3">
+                                <i class="fas fa-info-circle me-2"></i> Bagikan link pendek ke target untuk melacak informasi perangkat dan lokasi mereka.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header py-3">
+                        <h4 class="mb-0"><i class="fas fa-info-circle me-2"></i> Cara Penggunaan</h4>
+                    </div>
+                    <div class="card-body p-4">
+                        <ol>
+                            <li class="mb-2">Buat link tracking dengan mengisi form di atas.</li>
+                            <li class="mb-2">Salin link pendek yang dihasilkan.</li>
+                            <li class="mb-2">Kirimkan link tersebut ke target melalui WhatsApp, SMS, email, atau media sosial.</li>
+                            <li class="mb-2">Ketika target mengklik link, informasi perangkat dan lokasi mereka akan dicatat.</li>
+                            <li class="mb-2">Hasil tracking disimpan di server.</li>
+                        </ol>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i> <strong>Perhatian:</strong> Gunakan tool ini hanya untuk tujuan yang legal dan etis. Melacak seseorang tanpa izin dapat melanggar privasi dan hukum yang berlaku.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-3 text-muted">
+                    <p><small>Link Tracker &copy; <span id="current-year"></span></small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Tampilkan tahun saat ini
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+        
+        // Fungsi untuk menyalin ke clipboard
+        function copyToClipboard(elementId) {
+            var element = document.getElementById(elementId);
+            element.select();
+            document.execCommand("copy");
+            
+            // Tampilkan notifikasi
+            alert("Link berhasil disalin!");
+        }
+        
+        // Handle form submission
+        document.getElementById('linkForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const trackingId = document.getElementById('tracking_id').value.trim();
+            const customCode = document.getElementById('custom_code').value.trim();
+            
+            // Tampilkan loading
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Memproses...';
+            submitBtn.disabled = true;
+            
+            // Sembunyikan error dan hasil sebelumnya
+            document.getElementById('error-alert').style.display = 'none';
+            document.getElementById('result-card').style.display = 'none';
+            
+            // Kirim request ke API
+            fetch('/api/create-link', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    tracking_id: trackingId,
+                    custom_code: customCode
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Reset button
+                submitBtn.innerHTML = originalBtnText;
+                submitBtn.disabled = false;
+                
+                if (data.error) {
+                    // Tampilkan error
+                    document.getElementById('error-message').textContent = data.error;
+                    document.getElementById('error-alert').style.display = 'block';
+                } else {
+                    // Tampilkan hasil
+                    document.getElementById('short-url').value = data.short_url;
+                    document.getElementById('target-url').value = data.target_url;
+                    document.getElementById('result-card').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                // Reset button
+                submitBtn.innerHTML = originalBtnText;
+                submitBtn.disabled = false;
+                
+                // Tampilkan error
+                document.getElementById('error-message').textContent = 'Terjadi kesalahan. Silakan coba lagi.';
+                document.getElementById('error-alert').style.display = 'block';
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html> 

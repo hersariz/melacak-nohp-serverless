@@ -1,0 +1,26 @@
+{
+  "name": "pelacak-nohp",
+  "version": "1.0.0",
+  "description": "Aplikasi untuk melacak informasi nomor telepon",
+  "main": "index.js",
+  "scripts": {
+    "setup": "node setup.js",
+    "dev": "vercel dev",
+    "build": "vercel build",
+    "deploy": "vercel deploy --prod"
+  },
+  "keywords": [
+    "phone",
+    "tracking",
+    "osint"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.2"
+  },
+  "devDependencies": {
+    "vercel": "^32.5.5"
+  },
+  "type": "commonjs"
+}
