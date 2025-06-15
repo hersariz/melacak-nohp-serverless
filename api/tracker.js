@@ -21,12 +21,19 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
+  // Redirect URL - selalu siapkan di awal untuk memastikan bisa redirect meski ada error
+  const redirectUrl = REDIRECT_URL;
+  console.log('Redirect URL set to:', redirectUrl);
+
   try {
     // Ambil tracking ID dari query parameter
     const { id } = req.query;
     
+    console.log('Processing tracking ID:', id);
+    
     if (!id) {
-      return res.status(400).json({ error: 'Tracking ID is required' });
+      console.error('No tracking ID provided');
+      return res.redirect(302, redirectUrl);
     }
     
     // Parse user agent
@@ -76,57 +83,59 @@ module.exports = async (req, res) => {
     
     console.log('Tracking data:', logData);
     
-    // Coba simpan log ke database, tapi jangan tunggu hasilnya
-    try {
-      // Simpan log ke database
-      supabase
-        .from('logs')
-        .insert([logData])
-        .then(({ error }) => {
-          if (error) {
-            console.error('Error saving log to database:', error);
-          } else {
-            console.log('Log saved successfully');
-          }
-        });
-      
-      // Update link clicks
-      supabase
-        .from('links')
-        .select('clicks')
-        .eq('tracking_id', id)
-        .single()
-        .then(({ data: linkData, error: getLinkError }) => {
-          if (!getLinkError && linkData) {
-            // Update link clicks
-            const newClicks = (linkData.clicks || 0) + 1;
-            supabase
-              .from('links')
-              .update({ 
-                clicks: newClicks,
-                last_click: new Date().toISOString()
-              })
-              .eq('tracking_id', id)
-              .then(({ error: updateError }) => {
-                if (updateError) {
-                  console.error('Error updating link clicks:', updateError);
-                } else {
-                  console.log('Link clicks updated successfully');
-                }
-              });
-          }
-        });
-    } catch (dbError) {
-      console.error('Database operation error:', dbError);
-      // Lanjutkan meskipun ada error database
-    }
+    // Coba simpan log ke database dalam background
+    // Tidak menunggu operasi database selesai untuk menghindari timeout
+    setTimeout(() => {
+      try {
+        // Simpan log ke database
+        supabase
+          .from('logs')
+          .insert([logData])
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error saving log to database:', error);
+            } else {
+              console.log('Log saved successfully');
+              
+              // Update link clicks
+              supabase
+                .from('links')
+                .select('clicks')
+                .eq('tracking_id', id)
+                .single()
+                .then(({ data: linkData, error: getLinkError }) => {
+                  if (!getLinkError && linkData) {
+                    // Update link clicks
+                    const newClicks = (linkData.clicks || 0) + 1;
+                    supabase
+                      .from('links')
+                      .update({ 
+                        clicks: newClicks,
+                        last_click: new Date().toISOString()
+                      })
+                      .eq('tracking_id', id)
+                      .then(({ error: updateError }) => {
+                        if (updateError) {
+                          console.error('Error updating link clicks:', updateError);
+                        } else {
+                          console.log('Link clicks updated successfully');
+                        }
+                      });
+                  }
+                });
+            }
+          });
+      } catch (dbError) {
+        console.error('Database operation error:', dbError);
+      }
+    }, 10);
     
     // Redirect ke URL yang ditentukan (selalu dilakukan terlepas dari operasi database)
-    console.log('Redirecting to:', REDIRECT_URL);
-    return res.redirect(302, REDIRECT_URL);
+    console.log('Redirecting to:', redirectUrl);
+    return res.redirect(302, redirectUrl);
   } catch (error) {
     console.error('Error in tracker API:', error);
     // Tetap redirect meskipun terjadi error
-    return res.redirect(302, REDIRECT_URL);
+    return res.redirect(302, redirectUrl);
   }
 }; 

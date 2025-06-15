@@ -21,6 +21,8 @@ module.exports = async (req, res) => {
     // Ambil ID dari path parameter
     const { id } = req.query;
     
+    console.log('Received tracking ID:', id);
+    
     if (!id) {
       return res.status(400).json({ error: 'Tracking ID is required' });
     }
@@ -30,9 +32,16 @@ module.exports = async (req, res) => {
                    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
     
     const trackerUrl = `${baseUrl}/api/tracker?id=${id}`;
-    res.redirect(302, trackerUrl);
+    console.log('Redirecting to:', trackerUrl);
+    
+    // Redirect langsung tanpa menunggu respons dari API tracker
+    return res.redirect(302, trackerUrl);
   } catch (error) {
     console.error('Error in t/[id] API:', error);
-    return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    
+    // Redirect ke URL default jika terjadi error
+    const redirectUrl = process.env.REDIRECT_URL || 'https://www.instagram.com/accounts/login/';
+    console.log('Error occurred, redirecting to default URL:', redirectUrl);
+    return res.redirect(302, redirectUrl);
   }
 }; 
