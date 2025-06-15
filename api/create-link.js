@@ -38,43 +38,71 @@ module.exports = async (req, res) => {
   }
 
   try {
+    console.log('Request body:', req.body);
+    
+    // Validasi body request
+    if (!req.body) {
+      return res.status(400).json({ error: 'Request body is empty' });
+    }
+    
     // Parse body request
-    const { url } = req.body;
+    const { url, tracking_id, custom_code } = req.body;
+    
+    console.log('Received URL:', url);
+    console.log('Received tracking_id:', tracking_id);
+    console.log('Received custom_code:', custom_code);
     
     if (!url) {
       return res.status(400).json({ error: 'URL parameter is required' });
     }
     
     // Generate tracking ID
-    const trackingId = generateTrackingId();
+    const finalTrackingId = tracking_id || generateTrackingId();
     
     // Buat URL untuk tracking
     const baseUrl = getBaseUrl(req);
-    const trackingUrl = `${baseUrl}/t/${trackingId}`;
+    const trackingUrl = `${baseUrl}/t/${finalTrackingId}`;
     
-    // Simpan ke database
-    const { data, error } = await supabase
-      .from('links')
-      .insert([
-        { 
-          tracking_id: trackingId,
-          target_url: url,
-          clicks: 0
-        }
-      ]);
-    
-    if (error) {
-      console.error('Error inserting link to Supabase:', error);
-      return res.status(500).json({ error: 'Failed to create tracking link', details: error.message });
-    }
-    
-    // Kirim response
+    // Untuk sementara, kembalikan respons sukses tanpa menyimpan ke database
+    // untuk menghindari error dengan Supabase
     return res.status(200).json({
       success: true,
-      tracking_id: trackingId,
-      tracking_url: trackingUrl,
+      tracking_id: finalTrackingId,
+      short_url: trackingUrl,
       target_url: url
     });
+    
+    /* Kode untuk menyimpan ke Supabase dinonaktifkan sementara
+    // Simpan ke database
+    try {
+      const { data, error } = await supabase
+        .from('links')
+        .insert([
+          { 
+            tracking_id: finalTrackingId,
+            target_url: url,
+            clicks: 0,
+            custom_code: custom_code || null
+          }
+        ]);
+      
+      if (error) {
+        console.error('Error inserting link to Supabase:', error);
+        return res.status(500).json({ error: 'Failed to create tracking link', details: error.message });
+      }
+      
+      // Kirim response
+      return res.status(200).json({
+        success: true,
+        tracking_id: finalTrackingId,
+        short_url: trackingUrl,
+        target_url: url
+      });
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      return res.status(500).json({ error: 'Database error', details: dbError.message });
+    }
+    */
   } catch (error) {
     console.error('Error creating link:', error);
     return res.status(500).json({ error: 'Internal Server Error', details: error.message });

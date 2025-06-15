@@ -165,6 +165,7 @@
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify({
+                    url: window.location.href, // Gunakan URL saat ini sebagai default
                     tracking_id: trackingId,
                     custom_code: customCode
                 })
@@ -186,7 +187,7 @@
                     document.getElementById('error-alert').style.display = 'block';
                 } else {
                     // Tampilkan hasil
-                    document.getElementById('short-url').value = data.short_url;
+                    document.getElementById('short-url').value = data.short_url || data.tracking_url;
                     document.getElementById('target-url').value = data.target_url;
                     document.getElementById('result-card').style.display = 'block';
                 }
@@ -197,7 +198,7 @@
                 submitBtn.disabled = false;
                 
                 // Tampilkan error
-                document.getElementById('error-message').textContent = 'Terjadi kesalahan. Silakan coba lagi.';
+                document.getElementById('error-message').textContent = 'Terjadi kesalahan: ' + error.message;
                 document.getElementById('error-alert').style.display = 'block';
                 console.error('Error:', error);
             });
