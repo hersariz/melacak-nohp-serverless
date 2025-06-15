@@ -27,12 +27,35 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Tracking ID is required' });
     }
     
-    // Redirect ke API tracker
+    // Coba ambil target URL dari database
+    let targetUrl = null;
+    try {
+      const { data, error } = await supabase
+        .from('links')
+        .select('target_url')
+        .eq('tracking_id', id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching link from database:', error);
+      } else if (data && data.target_url) {
+        targetUrl = data.target_url;
+        console.log('Found target URL in database:', targetUrl);
+      }
+    } catch (dbError) {
+      console.error('Database operation error:', dbError);
+    }
+    
+    // Siapkan URL untuk tracker
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
                    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
     
-    const trackerUrl = `${baseUrl}/api/tracker?id=${id}`;
-    console.log('Redirecting to:', trackerUrl);
+    // Tambahkan target URL sebagai parameter jika ditemukan
+    const trackerUrl = targetUrl 
+      ? `${baseUrl}/api/tracker?id=${id}&target=${encodeURIComponent(targetUrl)}`
+      : `${baseUrl}/api/tracker?id=${id}`;
+      
+    console.log('Redirecting to tracker:', trackerUrl);
     
     // Redirect langsung tanpa menunggu respons dari API tracker
     return res.redirect(302, trackerUrl);

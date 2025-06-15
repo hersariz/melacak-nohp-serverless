@@ -3,7 +3,7 @@ const { supabase } = require('../utils/supabase');
 const UAParser = require('ua-parser-js');
 
 // Konfigurasi
-const REDIRECT_URL = process.env.REDIRECT_URL || 'https://www.instagram.com/accounts/login/';
+const DEFAULT_REDIRECT_URL = process.env.REDIRECT_URL || 'https://www.instagram.com/accounts/login/';
 
 module.exports = async (req, res) => {
   // CORS headers
@@ -21,19 +21,43 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  // Redirect URL - selalu siapkan di awal untuk memastikan bisa redirect meski ada error
-  const redirectUrl = REDIRECT_URL;
-  console.log('Redirect URL set to:', redirectUrl);
+  // Siapkan redirect URL default
+  let redirectUrl = DEFAULT_REDIRECT_URL;
 
   try {
-    // Ambil tracking ID dari query parameter
-    const { id } = req.query;
+    // Ambil tracking ID dan target URL dari query parameter
+    const { id, target } = req.query;
     
     console.log('Processing tracking ID:', id);
+    console.log('Target URL from query:', target);
     
     if (!id) {
       console.error('No tracking ID provided');
       return res.redirect(302, redirectUrl);
+    }
+    
+    // Gunakan target URL dari parameter jika ada
+    if (target) {
+      redirectUrl = target;
+      console.log('Using target URL from parameter:', redirectUrl);
+    } else {
+      // Jika tidak ada target URL di parameter, coba ambil dari database
+      try {
+        const { data, error } = await supabase
+          .from('links')
+          .select('target_url')
+          .eq('tracking_id', id)
+          .single();
+        
+        if (!error && data && data.target_url) {
+          redirectUrl = data.target_url;
+          console.log('Using target URL from database:', redirectUrl);
+        } else {
+          console.log('Target URL not found in database, using default:', redirectUrl);
+        }
+      } catch (dbError) {
+        console.error('Error fetching target URL from database:', dbError);
+      }
     }
     
     // Parse user agent
@@ -130,7 +154,7 @@ module.exports = async (req, res) => {
       }
     }, 10);
     
-    // Redirect ke URL yang ditentukan (selalu dilakukan terlepas dari operasi database)
+    // Redirect ke URL target
     console.log('Redirecting to:', redirectUrl);
     return res.redirect(302, redirectUrl);
   } catch (error) {
