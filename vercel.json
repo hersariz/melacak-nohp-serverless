@@ -4,18 +4,18 @@
     { "src": "api/**/*.js", "use": "@vercel/node" },
     { "src": "public/**/*", "use": "@vercel/static" }
   ],
-  "routes": [
-    { "src": "/api/track-phone", "dest": "/api/track-phone.js" },
-    { "src": "/api/tracker", "dest": "/api/tracker.js" },
-    { "src": "/api/create-link", "dest": "/api/create-link.js" },
-    { "src": "/api/admin/get-tracking-data", "dest": "/api/admin/get-tracking-data.js" },
-    { "src": "/api/r/(.*)", "dest": "/api/r/[code].js" },
-    { "src": "/api/t/(.*)", "dest": "/api/t/[id].js" },
-    { "src": "/", "dest": "/public/index.html" },
-    { "src": "/admin", "dest": "/public/admin.html" },
-    { "src": "/create-link", "dest": "/public/create-link.html" },
-    { "src": "/t/(.*)", "dest": "/api/t/[id].js" },
-    { "src": "/(.+)", "dest": "/public/$1" }
+  "rewrites": [
+    { "source": "/api/track-phone", "destination": "/api/track-phone.js" },
+    { "source": "/api/tracker", "destination": "/api/tracker.js" },
+    { "source": "/api/create-link", "destination": "/api/create-link.js" },
+    { "source": "/api/admin/get-tracking-data", "destination": "/api/admin/get-tracking-data.js" },
+    { "source": "/api/r/:code", "destination": "/api/r/[code].js" },
+    { "source": "/api/t/:id", "destination": "/api/t/[id].js" },
+    { "source": "/", "destination": "/public/index.html" },
+    { "source": "/admin", "destination": "/public/admin.html" },
+    { "source": "/create-link", "destination": "/public/create-link.html" },
+    { "source": "/t/:id", "destination": "/api/t/[id].js" },
+    { "source": "/:path*", "destination": "/public/:path*" }
   ],
   "headers": [
     {
