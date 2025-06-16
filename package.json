@@ -7,7 +7,8 @@
     "setup": "node setup.js",
     "dev": "vercel dev",
     "build": "vercel build",
-    "deploy": "vercel deploy --prod"
+    "deploy": "vercel deploy --prod",
+    "setup-database": "node utils/setup-database.js"
   },
   "keywords": [
     "phone",
@@ -20,7 +21,8 @@
     "@supabase/supabase-js": "^2.50.0",
     "axios": "^1.6.2",
     "bcryptjs": "^3.0.2",
-    "dotenv": "^16.5.0"
+    "dotenv": "^16.5.0",
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "vercel": "^32.5.5"
