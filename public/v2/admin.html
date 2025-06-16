@@ -455,7 +455,7 @@
             Object.entries(links).forEach(([id, link]) => {
                 const row = document.createElement('tr');
                 const isExpired = link.expiry_date && new Date(link.expiry_date) < new Date();
-                const isActive = link.is_active && !isExpired;
+                const isActive = link.is_active !== undefined ? link.is_active && !isExpired : true;
                 
                 row.innerHTML = `
                     <td>${id}</td>
