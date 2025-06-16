@@ -5,7 +5,7 @@
     { "src": "public/**/*", "use": "@vercel/static" }
   ],
   "rewrites": [
-    { "source": "/v2/t/:id", "destination": "/api/v2/t/simple.js?id=:id" },
+    { "source": "/v2/t/:id", "destination": "/api/v2/t/[id].js?id=:id" },
     { "source": "/v2/admin", "destination": "/public/v2/admin.html" },
     { "source": "/v2/create-link", "destination": "/public/v2/create-link.html" },
     { "source": "/v2/admin/api", "destination": "/api/v2/admin/index.js" },

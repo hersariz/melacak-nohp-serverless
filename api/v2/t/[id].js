@@ -2,7 +2,7 @@
  * API untuk redirect dari URL pendek ke tracker
  * Versi baru dengan penanganan error yang lebih baik
  */
-const { supabase } = require('../../../utils/supabase');
+const { createClient } = require('@supabase/supabase-js');
 
 module.exports = async (req, res) => {
   // CORS headers
@@ -52,6 +52,17 @@ module.exports = async (req, res) => {
     });
     
     try {
+      // Buat koneksi Supabase langsung di sini
+      const supabaseUrl = process.env.SUPABASE_URL || 'https://tgoonwkaafjkwvntdxnv.supabase.co';
+      const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnb29ud2thYWZqa3d2bnRkeG52Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0OTk0NzI4NCwiZXhwIjoyMDY1NTIzMjg0fQ.ddn8IOLEBZ_Iypb4xAPqc02ZGMBmw9SiswGJazjjBCY';
+      
+      const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      });
+      
       // Query database with timeout
       const queryPromise = supabase
         .from('links')
