@@ -20,13 +20,50 @@ const supabaseOptions = {
     schema: 'public'
   },
   realtime: {
-    timeout: 10000 // 10 detik
+    timeout: 20000 // 20 detik
   }
 };
 
 console.log('Supabase URL:', supabaseUrl);
 console.log('Supabase Anon Key:', supabaseAnonKey ? 'Set' : 'Not set');
 console.log('Supabase Service Role Key:', supabaseServiceRoleKey ? 'Set' : 'Not set');
+
+// Fungsi untuk membuat dummy client jika diperlukan
+const createDummyClient = () => {
+  return {
+    from: (table) => ({
+      insert: (data) => {
+        console.log(`[DUMMY] Would insert into ${table}:`, data);
+        return Promise.resolve({ data: null, error: { message: 'Dummy client, not connected to Supabase' } });
+      },
+      select: (columns) => ({
+        eq: (column, value) => ({
+          single: () => Promise.resolve({ data: null, error: null }),
+          limit: (n) => Promise.resolve({ data: [], error: null })
+        }),
+        neq: () => ({
+          limit: (n) => Promise.resolve({ data: [], error: null })
+        }),
+        limit: (n) => Promise.resolve({ data: [], error: null })
+      }),
+      update: (data) => ({
+        eq: (column, value) => Promise.resolve({ data: null, error: null }),
+        match: (criteria) => Promise.resolve({ data: null, error: null })
+      }),
+      delete: () => ({
+        eq: (column, value) => Promise.resolve({ data: null, error: null })
+      }),
+      eq: (column, value) => ({
+        single: () => Promise.resolve({ data: null, error: null })
+      }),
+      limit: (n) => Promise.resolve({ data: [], error: null })
+    }),
+    auth: {
+      signIn: () => Promise.resolve({ user: null, session: null, error: { message: 'Dummy auth client' } }),
+      signOut: () => Promise.resolve({ error: null })
+    }
+  };
+};
 
 // Buat klien Supabase dengan error handling
 let supabase = null;
@@ -41,56 +78,34 @@ try {
   
   console.log('Supabase clients created successfully');
   
-  // Validasi koneksi dengan ping sederhana
+  // Validasi koneksi dengan ping sederhana (secara asinkron)
   (async () => {
     try {
       const { data, error } = await supabase.from('links').select('count').limit(1);
       if (error) {
         console.warn('Supabase connection test failed:', error.message);
+        // Cek apakah error terkait tabel yang belum ada
+        if (error.message.includes("relation") && error.message.includes("does not exist")) {
+          console.warn('Table "links" may not exist. Creating dummy clients for safety.');
+          supabase = createDummyClient();
+          supabaseAdmin = createDummyClient();
+        }
       } else {
         console.log('Supabase connection test successful');
       }
     } catch (e) {
       console.warn('Supabase connection test error:', e.message);
+      console.warn('Creating fallback dummy clients');
+      
+      // Jika terjadi error pada koneksi, gunakan dummy client
+      supabase = createDummyClient();
+      supabaseAdmin = createDummyClient();
     }
   })();
 } catch (error) {
   console.error('Error creating Supabase clients:', error);
   
   // Buat dummy clients jika gagal
-  const createDummyClient = () => {
-    return {
-      from: (table) => ({
-        insert: (data) => {
-          console.log(`[DUMMY] Would insert into ${table}:`, data);
-          return Promise.resolve({ data: null, error: { message: 'Dummy client, not connected to Supabase' } });
-        },
-        select: (columns) => {
-          console.log(`[DUMMY] Would select ${columns || '*'} from ${table}`);
-          return Promise.resolve({ data: [], error: null });
-        },
-        update: (data) => {
-          console.log(`[DUMMY] Would update ${table}:`, data);
-          return Promise.resolve({ data: null, error: null });
-        },
-        eq: (column, value) => {
-          console.log(`[DUMMY] Would filter ${table} where ${column} = ${value}`);
-          return {
-            single: () => Promise.resolve({ data: null, error: null })
-          };
-        },
-        limit: (n) => {
-          console.log(`[DUMMY] Would limit ${table} to ${n} rows`);
-          return Promise.resolve({ data: [], error: null });
-        }
-      }),
-      auth: {
-        signIn: () => Promise.resolve({ user: null, session: null, error: { message: 'Dummy auth client' } }),
-        signOut: () => Promise.resolve({ error: null })
-      }
-    };
-  };
-  
   supabase = createDummyClient();
   supabaseAdmin = createDummyClient();
   
