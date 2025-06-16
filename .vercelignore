@@ -8,4 +8,16 @@ test.php
 api_test.php
 debug.php
 api_fallback.php
-.git 
+.git
+
+# Abaikan file API yang tidak digunakan
+api/create-link.js
+api/r/[code].js
+api/t/[id].js
+api/track-phone.js
+api/tracker.js
+api/admin/get-tracking-data.js
+
+# Gunakan versi v2 saja
+api/v2/admin/get-tracking-data.js
+api/v2/t/id.js 

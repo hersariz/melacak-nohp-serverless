@@ -1,24 +1,13 @@
-// Import yang dibutuhkan
-const { createClient } = require('@supabase/supabase-js');
+/**
+ * API untuk admin dashboard v2
+ * Menangani berbagai aksi admin
+ */
 
-// Inisialisasi klien Supabase
-const supabaseUrl = process.env.SUPABASE_URL || 'https://tgoonwkaafjkwvntdxnv.supabase.co';
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnb29ud2thYWZqa3d2bnRkeG52Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0OTk0NzI4NCwiZXhwIjoyMDY1NTIzMjg0fQ.ddn8IOLEBZ_Iypb4xAPqc02ZGMBmw9SiswGJazjjBCY';
-
-// List of valid setup keys (untuk mengatasi masalah env vars di Vercel)
-const validSetupKeys = [
-  process.env.SETUP_KEY, 
-  'rahasia1234setup',
-  'setup123',
-  'adminsetup'
-];
-
-// Multi-purpose API Endpoint handler
 module.exports = async (req, res) => {
-  // Set CORS headers
+  // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
 
   // Handle OPTIONS request
@@ -26,190 +15,133 @@ module.exports = async (req, res) => {
     return res.status(200).end();
   }
   
-  // Debug info
-  console.log('Request path:', req.url);
-  console.log('Request query:', req.query);
-  console.log('Request action:', req.query.action);
-  console.log('Environment variables:');
-  console.log('NODE_ENV:', process.env.NODE_ENV);
-  console.log('SUPABASE_URL:', supabaseUrl);
-  console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceRoleKey ? 'Set (masked)' : 'Not set');
-  console.log('SETUP_KEY from env:', process.env.SETUP_KEY ? 'Set (masked)' : 'Not set');
-  console.log('Valid setup keys count:', validSetupKeys.filter(Boolean).length);
-  
-  // Determine action based on query parameter
-  const action = req.query.action || 'info';
-  
-  // Basic information endpoint
-  if (action === 'info') {
+  try {
+    // Get action from query parameter
+    const action = req.query.action || '';
+    
+    console.log('[v2/admin] Processing action:', action);
+    
+    // Handle different actions
+    switch (action) {
+      case 'info':
+        // Return environment info
+        return res.status(200).json({
+          success: true,
+          info: {
+            environment: process.env.NODE_ENV || 'development',
+            vercel: {
+              region: process.env.VERCEL_REGION || 'unknown',
+              url: process.env.VERCEL_URL || 'unknown'
+            },
+            supabase: {
+              url: process.env.SUPABASE_URL || 'https://tgoonwkaafjkwvntdxnv.supabase.co',
+              anon_key_set: !!process.env.SUPABASE_ANON_KEY,
+              service_role_key_set: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+            }
+          }
+        });
+      
+      case 'test':
+        // Test endpoint
+        return res.status(200).json({
+          success: true,
+          message: 'API is working',
+          timestamp: new Date().toISOString()
+        });
+      
+      case 'setup-db':
+        // Setup database tables
+        try {
+          const { createClient } = require('@supabase/supabase-js');
+          
+          // Buat koneksi Supabase langsung di sini
+          const supabaseUrl = process.env.SUPABASE_URL || 'https://tgoonwkaafjkwvntdxnv.supabase.co';
+          const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnb29ud2thYWZqa3d2bnRkeG52Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0OTk0NzI4NCwiZXhwIjoyMDY1NTIzMjg0fQ.ddn8IOLEBZ_Iypb4xAPqc02ZGMBmw9SiswGJazjjBCY';
+          
+          const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
+          });
+          
+          // Create links table
+          try {
+            await supabase.rpc('exec_sql', {
+              sql: `
+                CREATE TABLE IF NOT EXISTS public.links (
+                  id SERIAL PRIMARY KEY,
+                  tracking_id VARCHAR(255) NOT NULL UNIQUE,
+                  target_url TEXT NOT NULL,
+                  custom_code VARCHAR(255) NULL,
+                  clicks INT DEFAULT 0,
+                  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                  is_active BOOLEAN DEFAULT TRUE,
+                  notes TEXT NULL,
+                  expiry_date TIMESTAMP WITH TIME ZONE NULL,
+                  last_click TIMESTAMP WITH TIME ZONE NULL
+                );
+              `
+            });
+            console.log('[v2/admin] Links table created or already exists');
+          } catch (tableError) {
+            console.log('[v2/admin] Links table creation error:', tableError.message);
+          }
+          
+          // Create logs table
+          try {
+            await supabase.rpc('exec_sql', {
+              sql: `
+                CREATE TABLE IF NOT EXISTS public.logs (
+                  id SERIAL PRIMARY KEY,
+                  tracking_id VARCHAR(255) NOT NULL,
+                  ip VARCHAR(255),
+                  device VARCHAR(50),
+                  browser VARCHAR(50),
+                  os VARCHAR(50),
+                  timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                  user_agent TEXT,
+                  language VARCHAR(50),
+                  referrer TEXT
+                );
+              `
+            });
+            console.log('[v2/admin] Logs table created or already exists');
+          } catch (tableError) {
+            console.log('[v2/admin] Logs table creation error:', tableError.message);
+          }
+          
+          return res.status(200).json({
+            success: true,
+            message: 'Database setup completed',
+            tables: ['links', 'logs']
+          });
+        } catch (dbError) {
+          console.error('[v2/admin] Database setup error:', dbError);
+          return res.status(200).json({
+            success: false,
+            error: 'Database Setup Error',
+            message: dbError.message
+          });
+        }
+      
+      default:
+        // Unknown action
+        return res.status(200).json({
+          success: false,
+          error: 'Invalid Action',
+          message: `Action '${action}' is not supported`,
+          available_actions: ['info', 'test', 'setup-db']
+        });
+    }
+  } catch (error) {
+    console.error('[v2/admin] Error:', error);
+    
+    // Return error response
     return res.status(200).json({
-      success: true,
-      message: 'API is working correctly',
-      timestamp: new Date().toISOString(),
-      environment: {
-        node_env: process.env.NODE_ENV,
-        supabase_url_set: !!supabaseUrl,
-        supabase_key_set: !!supabaseServiceRoleKey,
-        setup_key_set: !!process.env.SETUP_KEY,
-        valid_keys_count: validSetupKeys.filter(Boolean).length
-      }
+      success: false,
+      error: 'Internal Server Error',
+      message: error.message
     });
   }
-  
-  // Test API endpoint
-  if (action === 'test') {
-    return res.status(200).json({
-      success: true,
-      message: 'API test berfungsi dengan baik!',
-      timestamp: new Date().toISOString(),
-      query: req.query
-    });
-  }
-  
-  // Setup database endpoint
-  if (action === 'setup-db') {
-    // Basic security check
-    const requestKey = req.query.key || '';
-    console.log('Received setup key (first 4 chars):', requestKey.substring(0, 4) + '...');
-    
-    // Cek apakah key valid
-    const isKeyValid = validSetupKeys.some(key => key && key === requestKey);
-    
-    if (!isKeyValid) {
-      console.log('Unauthorized access attempt with key:', requestKey);
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Unauthorized access. Please provide the correct setup key via ?key=YOUR_KEY',
-        valid_keys: validSetupKeys.map(k => k ? k.substring(0, 2) + '...' : 'undefined')
-      });
-    }
-
-    try {
-      console.log('Initializing Supabase client...');
-      
-      // Buat klien Supabase
-      const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        }
-      });
-      
-      console.log('Creating tables...');
-      
-      // Buat tabel links jika belum ada
-      try {
-        const createLinksTableQuery = `
-          CREATE TABLE IF NOT EXISTS public.links (
-            id SERIAL PRIMARY KEY,
-            tracking_id VARCHAR(255) NOT NULL UNIQUE,
-            target_url TEXT NOT NULL,
-            custom_code VARCHAR(255) NULL,
-            clicks INT DEFAULT 0,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            is_active BOOLEAN DEFAULT TRUE,
-            notes TEXT NULL,
-            expiry_date TIMESTAMP WITH TIME ZONE NULL
-          );
-          
-          CREATE INDEX IF NOT EXISTS idx_links_tracking_id ON public.links(tracking_id);
-          CREATE INDEX IF NOT EXISTS idx_links_custom_code ON public.links(custom_code);
-        `;
-        
-        const { error: createLinksError } = await supabase.rpc('exec_sql', {
-          sql: createLinksTableQuery
-        });
-        
-        if (createLinksError) {
-          console.error('Error creating links table:', createLinksError);
-        } else {
-          console.log('Links table created or already exists');
-        }
-      } catch (tableError) {
-        console.error('Error in table creation:', tableError);
-      }
-      
-      // Buat tabel tracker_visits jika belum ada
-      try {
-        const createVisitsTableQuery = `
-          CREATE TABLE IF NOT EXISTS public.tracker_visits (
-            id SERIAL PRIMARY KEY,
-            tracking_id VARCHAR(255) NOT NULL,
-            visit_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            ip_address VARCHAR(45) NULL,
-            user_agent TEXT NULL,
-            browser VARCHAR(255) NULL,
-            browser_version VARCHAR(100) NULL,
-            os VARCHAR(255) NULL,
-            os_version VARCHAR(100) NULL,
-            device_type VARCHAR(50) NULL,
-            device_brand VARCHAR(100) NULL,
-            device_model VARCHAR(100) NULL,
-            country VARCHAR(100) NULL,
-            city VARCHAR(100) NULL,
-            latitude DECIMAL(10,6) NULL,
-            longitude DECIMAL(10,6) NULL,
-            isp VARCHAR(255) NULL,
-            network VARCHAR(255) NULL
-          );
-          
-          CREATE INDEX IF NOT EXISTS idx_tracker_visits_tracking_id ON public.tracker_visits(tracking_id);
-        `;
-        
-        const { error: createVisitsError } = await supabase.rpc('exec_sql', {
-          sql: createVisitsTableQuery
-        });
-        
-        if (createVisitsError) {
-          console.error('Error creating visits table:', createVisitsError);
-        } else {
-          console.log('Tracker visits table created or already exists');
-        }
-      } catch (tableError) {
-        console.error('Error in visits table creation:', tableError);
-      }
-      
-      // Verifikasi tabel
-      console.log('Verifying tables...');
-      
-      // Cek tabel links
-      const { data: linksData, error: linksError } = await supabase
-        .from('links')
-        .select('id')
-        .limit(1);
-      
-      // Cek tabel tracker_visits
-      const { data: visitsData, error: visitsError } = await supabase
-        .from('tracker_visits')
-        .select('id')
-        .limit(1);
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Database setup process completed',
-        verification: {
-          links_table: !linksError ? 'OK' : 'Error: ' + linksError.message,
-          visits_table: !visitsError ? 'OK' : 'Error: ' + visitsError.message,
-        },
-        environment: {
-          node_env: process.env.NODE_ENV,
-          supabase_url_set: !!supabaseUrl,
-          supabase_key_set: !!supabaseServiceRoleKey
-        }
-      });
-    } catch (error) {
-      console.error('Error in setup-db endpoint:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error in setup-db endpoint',
-        error: error.message
-      });
-    }
-  }
-  
-  // Unknown action
-  return res.status(400).json({
-    success: false,
-    message: 'Unknown action. Available actions: info, test, setup-db'
-  });
 }; 
