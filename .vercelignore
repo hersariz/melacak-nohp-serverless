@@ -1,0 +1,11 @@
+# Ignore files that are not needed for deployment
+api/v2/admin/setup-db.js
+api/v2/admin/test-api.js
+utils/setup-database.js
+setup.js
+*.php
+test.php
+api_test.php
+debug.php
+api_fallback.php
+.git 
