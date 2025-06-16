@@ -125,6 +125,199 @@ module.exports = async (req, res) => {
           });
         }
       
+      case 'get-tracking-data':
+        // Return demo data for dashboard
+        console.log('[v2/admin] Returning demo tracking data');
+        
+        // Demo data untuk dashboard
+        const demoData = {
+          success: true,
+          stats: {
+            totalLogs: 5,
+            totalLinks: 3,
+            totalTrackingIds: 3,
+            deviceStats: {
+              Mobile: 3,
+              Desktop: 1,
+              Tablet: 1,
+              Unknown: 0
+            },
+            browserStats: {
+              Chrome: 2,
+              Firefox: 1,
+              Safari: 1,
+              "Mobile Chrome": 1
+            },
+            osStats: {
+              Android: 2,
+              Windows: 1,
+              iOS: 1,
+              MacOS: 1
+            },
+            dateStats: {
+              "2023-06-15": 3,
+              "2023-06-14": 2
+            }
+          },
+          logs: [
+            {
+              id: 1,
+              timestamp: new Date().toISOString(),
+              tracking_id: "demo123",
+              ip: "192.168.1.1",
+              device: "Mobile",
+              browser: "Chrome",
+              os: "Android",
+              country: "Indonesia",
+              city: "Jakarta",
+              isp: "Telkomsel"
+            },
+            {
+              id: 2,
+              timestamp: new Date(Date.now() - 3600000).toISOString(),
+              tracking_id: "demo123",
+              ip: "192.168.1.2",
+              device: "Desktop",
+              browser: "Firefox",
+              os: "Windows",
+              country: "Indonesia",
+              city: "Bandung",
+              isp: "Indihome"
+            },
+            {
+              id: 3,
+              timestamp: new Date(Date.now() - 7200000).toISOString(),
+              tracking_id: "demo456",
+              ip: "192.168.1.3",
+              device: "Tablet",
+              browser: "Safari",
+              os: "iOS",
+              country: "Indonesia",
+              city: "Surabaya",
+              isp: "XL Axiata"
+            },
+            {
+              id: 4,
+              timestamp: new Date(Date.now() - 86400000).toISOString(),
+              tracking_id: "demo789",
+              ip: "192.168.1.4",
+              device: "Mobile",
+              browser: "Mobile Chrome",
+              os: "Android",
+              country: "Indonesia",
+              city: "Medan",
+              isp: "Smartfren"
+            },
+            {
+              id: 5,
+              timestamp: new Date(Date.now() - 172800000).toISOString(),
+              tracking_id: "demo123",
+              ip: "192.168.1.5",
+              device: "Desktop",
+              browser: "Chrome",
+              os: "MacOS",
+              country: "Indonesia",
+              city: "Denpasar",
+              isp: "Biznet"
+            }
+          ],
+          links: {
+            "demo123": {
+              tracking_id: "demo123",
+              target_url: "https://example.com/page1",
+              created_at: new Date(Date.now() - 86400000).toISOString(),
+              clicks: 10,
+              last_click: new Date().toISOString(),
+              custom_code: "promo2023",
+              is_active: true,
+              notes: "Kampanye promosi Juni",
+              expiry_date: new Date(Date.now() + 604800000).toISOString()
+            },
+            "demo456": {
+              tracking_id: "demo456",
+              target_url: "https://example.com/page2",
+              created_at: new Date(Date.now() - 172800000).toISOString(),
+              clicks: 5,
+              last_click: new Date(Date.now() - 3600000).toISOString(),
+              custom_code: null,
+              is_active: true,
+              notes: null,
+              expiry_date: null
+            },
+            "demo789": {
+              tracking_id: "demo789",
+              target_url: "https://example.com/page3",
+              created_at: new Date(Date.now() - 259200000).toISOString(),
+              clicks: 3,
+              last_click: new Date(Date.now() - 86400000).toISOString(),
+              custom_code: "test123",
+              is_active: false,
+              notes: "Link uji coba",
+              expiry_date: new Date(Date.now() - 86400000).toISOString()
+            }
+          },
+          groupedLogs: {
+            "demo123": [
+              {
+                id: 1,
+                timestamp: new Date().toISOString(),
+                tracking_id: "demo123",
+                ip: "192.168.1.1",
+                device: "Mobile",
+                browser: "Chrome",
+                os: "Android"
+              },
+              {
+                id: 2,
+                timestamp: new Date(Date.now() - 3600000).toISOString(),
+                tracking_id: "demo123",
+                ip: "192.168.1.2",
+                device: "Desktop",
+                browser: "Firefox",
+                os: "Windows"
+              },
+              {
+                id: 5,
+                timestamp: new Date(Date.now() - 172800000).toISOString(),
+                tracking_id: "demo123",
+                ip: "192.168.1.5",
+                device: "Desktop",
+                browser: "Chrome",
+                os: "MacOS"
+              }
+            ],
+            "demo456": [
+              {
+                id: 3,
+                timestamp: new Date(Date.now() - 7200000).toISOString(),
+                tracking_id: "demo456",
+                ip: "192.168.1.3",
+                device: "Tablet",
+                browser: "Safari",
+                os: "iOS"
+              }
+            ],
+            "demo789": [
+              {
+                id: 4,
+                timestamp: new Date(Date.now() - 86400000).toISOString(),
+                tracking_id: "demo789",
+                ip: "192.168.1.4",
+                device: "Mobile",
+                browser: "Mobile Chrome",
+                os: "Android"
+              }
+            ]
+          },
+          pagination: {
+            limit: 100,
+            offset: 0,
+            total: 5
+          }
+        };
+        
+        return res.status(200).json(demoData);
+      
       default:
         // Unknown action
         return res.status(200).json({

@@ -288,7 +288,7 @@
                 const credentials = btoa(`${username}:${password}`);
                 
                 // Fetch data dari API
-                const response = await fetch('/api/v2/admin/get-tracking-data', {
+                const response = await fetch('/api/v2/admin?action=get-tracking-data', {
                     headers: {
                         'Authorization': `Basic ${credentials}`
                     }
