@@ -126,138 +126,161 @@ module.exports = async (req, res) => {
         }
       
       case 'get-tracking-data':
-        // Return demo data for dashboard
-        console.log('[v2/admin] Returning demo tracking data');
+        // Get real tracking data from Supabase
+        console.log('[v2/admin] Fetching tracking data from Supabase');
         
-        // Demo data untuk dashboard
-        const demoData = {
-          success: true,
-          stats: {
-            totalLogs: 5,
-            totalLinks: 3,
-            totalTrackingIds: 3,
-            deviceStats: {
-              Mobile: 3,
-              Desktop: 1,
-              Tablet: 1,
-              Unknown: 0
-            },
-            browserStats: {
-              Chrome: 2,
-              Firefox: 1,
-              Safari: 1,
-              "Mobile Chrome": 1
-            },
-            osStats: {
-              Android: 2,
-              Windows: 1,
-              iOS: 1,
-              MacOS: 1
-            },
-            dateStats: {
-              "2023-06-15": 3,
-              "2023-06-14": 2
+        try {
+          const { createClient } = require('@supabase/supabase-js');
+          
+          // Buat koneksi Supabase langsung di sini
+          const supabaseUrl = process.env.SUPABASE_URL || 'https://tgoonwkaafjkwvntdxnv.supabase.co';
+          const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnb29ud2thYWZqa3d2bnRkeG52Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0OTk0NzI4NCwiZXhwIjoyMDY1NTIzMjg0fQ.ddn8IOLEBZ_Iypb4xAPqc02ZGMBmw9SiswGJazjjBCY';
+          
+          const supabase = createClient(supabaseUrl, supabaseKey, {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
             }
-          },
-          logs: [
-            {
-              id: 1,
-              timestamp: new Date().toISOString(),
-              tracking_id: "demo123",
-              ip: "192.168.1.1",
-              device: "Mobile",
-              browser: "Chrome",
-              os: "Android",
-              country: "Indonesia",
-              city: "Jakarta",
-              isp: "Telkomsel"
-            },
-            {
-              id: 2,
-              timestamp: new Date(Date.now() - 3600000).toISOString(),
-              tracking_id: "demo123",
-              ip: "192.168.1.2",
-              device: "Desktop",
-              browser: "Firefox",
-              os: "Windows",
-              country: "Indonesia",
-              city: "Bandung",
-              isp: "Indihome"
-            },
-            {
-              id: 3,
-              timestamp: new Date(Date.now() - 7200000).toISOString(),
-              tracking_id: "demo456",
-              ip: "192.168.1.3",
-              device: "Tablet",
-              browser: "Safari",
-              os: "iOS",
-              country: "Indonesia",
-              city: "Surabaya",
-              isp: "XL Axiata"
-            },
-            {
-              id: 4,
-              timestamp: new Date(Date.now() - 86400000).toISOString(),
-              tracking_id: "demo789",
-              ip: "192.168.1.4",
-              device: "Mobile",
-              browser: "Mobile Chrome",
-              os: "Android",
-              country: "Indonesia",
-              city: "Medan",
-              isp: "Smartfren"
-            },
-            {
-              id: 5,
-              timestamp: new Date(Date.now() - 172800000).toISOString(),
-              tracking_id: "demo123",
-              ip: "192.168.1.5",
-              device: "Desktop",
-              browser: "Chrome",
-              os: "MacOS",
-              country: "Indonesia",
-              city: "Denpasar",
-              isp: "Biznet"
+          });
+          
+          // Coba ambil data dari tabel links dan logs
+          const [linksResult, logsResult] = await Promise.all([
+            supabase.from('links').select('*'),
+            supabase.from('logs').select('*').order('timestamp', { ascending: false }).limit(100)
+          ]);
+          
+          // Check for errors
+          if (linksResult.error) {
+            console.error('[v2/admin] Error fetching links:', linksResult.error);
+            throw new Error(`Links fetch error: ${linksResult.error.message}`);
+          }
+          
+          if (logsResult.error) {
+            console.error('[v2/admin] Error fetching logs:', logsResult.error);
+            throw new Error(`Logs fetch error: ${logsResult.error.message}`);
+          }
+          
+          // Format data untuk dashboard
+          const links = {};
+          const logs = logsResult.data || [];
+          const linksData = linksResult.data || [];
+          
+          // Format links data
+          linksData.forEach(link => {
+            links[link.tracking_id] = {
+              tracking_id: link.tracking_id,
+              target_url: link.target_url,
+              created_at: link.created_at,
+              clicks: link.clicks || 0,
+              last_click: link.last_click || null,
+              custom_code: link.custom_code || null,
+              is_active: link.is_active !== false,
+              notes: link.notes || null,
+              expiry_date: link.expiry_date || null
+            };
+          });
+          
+          // Calculate stats
+          const deviceStats = {
+            Mobile: 0,
+            Desktop: 0,
+            Tablet: 0,
+            Unknown: 0
+          };
+          
+          const browserStats = {};
+          const osStats = {};
+          const dateStats = {};
+          const groupedLogs = {};
+          
+          logs.forEach(log => {
+            // Count device types
+            const device = log.device || 'Unknown';
+            deviceStats[device] = (deviceStats[device] || 0) + 1;
+            
+            // Count browsers
+            const browser = log.browser || 'Unknown';
+            browserStats[browser] = (browserStats[browser] || 0) + 1;
+            
+            // Count OS
+            const os = log.os || 'Unknown';
+            osStats[os] = (osStats[os] || 0) + 1;
+            
+            // Group by date
+            const date = log.timestamp ? new Date(log.timestamp).toISOString().split('T')[0] : 'Unknown';
+            dateStats[date] = (dateStats[date] || 0) + 1;
+            
+            // Group logs by tracking_id
+            if (log.tracking_id) {
+              if (!groupedLogs[log.tracking_id]) {
+                groupedLogs[log.tracking_id] = [];
+              }
+              groupedLogs[log.tracking_id].push(log);
             }
-          ],
-          links: {
-            "demo123": {
-              tracking_id: "demo123",
-              target_url: "https://example.com/page1",
-              created_at: new Date(Date.now() - 86400000).toISOString(),
-              clicks: 10,
-              last_click: new Date().toISOString(),
-              custom_code: "promo2023",
-              is_active: true,
-              notes: "Kampanye promosi Juni",
-              expiry_date: new Date(Date.now() + 604800000).toISOString()
+          });
+          
+          // Prepare response
+          const trackingData = {
+            success: true,
+            stats: {
+              totalLogs: logs.length,
+              totalLinks: linksData.length,
+              totalTrackingIds: Object.keys(groupedLogs).length,
+              deviceStats,
+              browserStats,
+              osStats,
+              dateStats
             },
-            "demo456": {
-              tracking_id: "demo456",
-              target_url: "https://example.com/page2",
-              created_at: new Date(Date.now() - 172800000).toISOString(),
-              clicks: 5,
-              last_click: new Date(Date.now() - 3600000).toISOString(),
-              custom_code: null,
-              is_active: true,
-              notes: null,
-              expiry_date: null
-            },
-            "demo789": {
-              tracking_id: "demo789",
-              target_url: "https://example.com/page3",
-              created_at: new Date(Date.now() - 259200000).toISOString(),
-              clicks: 3,
-              last_click: new Date(Date.now() - 86400000).toISOString(),
-              custom_code: "test123",
-              is_active: false,
-              notes: "Link uji coba",
-              expiry_date: new Date(Date.now() - 86400000).toISOString()
+            logs,
+            links,
+            groupedLogs,
+            pagination: {
+              limit: 100,
+              offset: 0,
+              total: logs.length
             }
-          },
-          groupedLogs: {
-            "demo123": [
+          };
+          
+          return res.status(200).json(trackingData);
+        } catch (error) {
+          console.error('[v2/admin] Error getting tracking data:', error);
+          
+          // Return demo data if there's an error
+          console.log('[v2/admin] Returning demo tracking data due to error');
+          
+          // Demo data untuk dashboard
+          const demoData = {
+            success: false,
+            error: error.message,
+            message: 'Menggunakan data demo karena terjadi error',
+            stats: {
+              totalLogs: 5,
+              totalLinks: 3,
+              totalTrackingIds: 3,
+              deviceStats: {
+                Mobile: 3,
+                Desktop: 1,
+                Tablet: 1,
+                Unknown: 0
+              },
+              browserStats: {
+                Chrome: 2,
+                Firefox: 1,
+                Safari: 1,
+                "Mobile Chrome": 1
+              },
+              osStats: {
+                Android: 2,
+                Windows: 1,
+                iOS: 1,
+                MacOS: 1
+              },
+              dateStats: {
+                "2023-06-15": 3,
+                "2023-06-14": 2
+              }
+            },
+            logs: [
               {
                 id: 1,
                 timestamp: new Date().toISOString(),
@@ -265,7 +288,10 @@ module.exports = async (req, res) => {
                 ip: "192.168.1.1",
                 device: "Mobile",
                 browser: "Chrome",
-                os: "Android"
+                os: "Android",
+                country: "Indonesia",
+                city: "Jakarta",
+                isp: "Telkomsel"
               },
               {
                 id: 2,
@@ -274,7 +300,34 @@ module.exports = async (req, res) => {
                 ip: "192.168.1.2",
                 device: "Desktop",
                 browser: "Firefox",
-                os: "Windows"
+                os: "Windows",
+                country: "Indonesia",
+                city: "Bandung",
+                isp: "Indihome"
+              },
+              {
+                id: 3,
+                timestamp: new Date(Date.now() - 7200000).toISOString(),
+                tracking_id: "demo456",
+                ip: "192.168.1.3",
+                device: "Tablet",
+                browser: "Safari",
+                os: "iOS",
+                country: "Indonesia",
+                city: "Surabaya",
+                isp: "XL Axiata"
+              },
+              {
+                id: 4,
+                timestamp: new Date(Date.now() - 86400000).toISOString(),
+                tracking_id: "demo789",
+                ip: "192.168.1.4",
+                device: "Mobile",
+                browser: "Mobile Chrome",
+                os: "Android",
+                country: "Indonesia",
+                city: "Medan",
+                isp: "Smartfren"
               },
               {
                 id: 5,
@@ -283,40 +336,109 @@ module.exports = async (req, res) => {
                 ip: "192.168.1.5",
                 device: "Desktop",
                 browser: "Chrome",
-                os: "MacOS"
+                os: "MacOS",
+                country: "Indonesia",
+                city: "Denpasar",
+                isp: "Biznet"
               }
             ],
-            "demo456": [
-              {
-                id: 3,
-                timestamp: new Date(Date.now() - 7200000).toISOString(),
+            links: {
+              "demo123": {
+                tracking_id: "demo123",
+                target_url: "https://example.com/page1",
+                created_at: new Date(Date.now() - 86400000).toISOString(),
+                clicks: 10,
+                last_click: new Date().toISOString(),
+                custom_code: "promo2023",
+                is_active: true,
+                notes: "Kampanye promosi Juni",
+                expiry_date: new Date(Date.now() + 604800000).toISOString()
+              },
+              "demo456": {
                 tracking_id: "demo456",
-                ip: "192.168.1.3",
-                device: "Tablet",
-                browser: "Safari",
-                os: "iOS"
-              }
-            ],
-            "demo789": [
-              {
-                id: 4,
-                timestamp: new Date(Date.now() - 86400000).toISOString(),
+                target_url: "https://example.com/page2",
+                created_at: new Date(Date.now() - 172800000).toISOString(),
+                clicks: 5,
+                last_click: new Date(Date.now() - 3600000).toISOString(),
+                custom_code: null,
+                is_active: true,
+                notes: null,
+                expiry_date: null
+              },
+              "demo789": {
                 tracking_id: "demo789",
-                ip: "192.168.1.4",
-                device: "Mobile",
-                browser: "Mobile Chrome",
-                os: "Android"
+                target_url: "https://example.com/page3",
+                created_at: new Date(Date.now() - 259200000).toISOString(),
+                clicks: 3,
+                last_click: new Date(Date.now() - 86400000).toISOString(),
+                custom_code: "test123",
+                is_active: false,
+                notes: "Link uji coba",
+                expiry_date: new Date(Date.now() - 86400000).toISOString()
               }
-            ]
-          },
-          pagination: {
-            limit: 100,
-            offset: 0,
-            total: 5
-          }
-        };
-        
-        return res.status(200).json(demoData);
+            },
+            groupedLogs: {
+              "demo123": [
+                {
+                  id: 1,
+                  timestamp: new Date().toISOString(),
+                  tracking_id: "demo123",
+                  ip: "192.168.1.1",
+                  device: "Mobile",
+                  browser: "Chrome",
+                  os: "Android"
+                },
+                {
+                  id: 2,
+                  timestamp: new Date(Date.now() - 3600000).toISOString(),
+                  tracking_id: "demo123",
+                  ip: "192.168.1.2",
+                  device: "Desktop",
+                  browser: "Firefox",
+                  os: "Windows"
+                },
+                {
+                  id: 5,
+                  timestamp: new Date(Date.now() - 172800000).toISOString(),
+                  tracking_id: "demo123",
+                  ip: "192.168.1.5",
+                  device: "Desktop",
+                  browser: "Chrome",
+                  os: "MacOS"
+                }
+              ],
+              "demo456": [
+                {
+                  id: 3,
+                  timestamp: new Date(Date.now() - 7200000).toISOString(),
+                  tracking_id: "demo456",
+                  ip: "192.168.1.3",
+                  device: "Tablet",
+                  browser: "Safari",
+                  os: "iOS"
+                }
+              ],
+              "demo789": [
+                {
+                  id: 4,
+                  timestamp: new Date(Date.now() - 86400000).toISOString(),
+                  tracking_id: "demo789",
+                  ip: "192.168.1.4",
+                  device: "Mobile",
+                  browser: "Mobile Chrome",
+                  os: "Android"
+                }
+              ]
+            },
+            pagination: {
+              limit: 100,
+              offset: 0,
+              total: 5
+            }
+          };
+          
+          return res.status(200).json(demoData);
+        }
       
       default:
         // Unknown action
@@ -324,7 +446,7 @@ module.exports = async (req, res) => {
           success: false,
           error: 'Invalid Action',
           message: `Action '${action}' is not supported`,
-          available_actions: ['info', 'test', 'setup-db']
+          available_actions: ['info', 'test', 'setup-db', 'get-tracking-data']
         });
     }
   } catch (error) {
